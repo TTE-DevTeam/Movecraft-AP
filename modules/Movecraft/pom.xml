@@ -68,6 +68,12 @@
         </dependency>
         <dependency>
             <groupId>net.countercraft</groupId>
+            <artifactId>movecraft-v1_19_r3</artifactId>
+            <version>${revision}</version>
+            <type>jar</type>
+        </dependency>
+        <dependency>
+            <groupId>net.countercraft</groupId>
             <artifactId>movecraft-api</artifactId>
             <version>${revision}</version>
             <type>jar</type>

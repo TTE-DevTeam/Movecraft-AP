@@ -61,6 +61,12 @@ else
     java -jar BuildTools.jar --rev 1.19.3 --remapped
 fi
 
+if [ -f ~/.m2/repository/org/spigotmc/spigot/1.19.4-R0.1-SNAPSHOT/spigot-1.19.4-R0.1-SNAPSHOT.jar ]; then
+    echo "1.19.4 already exists, skipping build"
+else
+    java -jar BuildTools.jar --rev 1.19.4 --remapped
+fi
+
 # Restore git information
 git config --global user.name "$git_name"
 git config --global user.email "$git_email"

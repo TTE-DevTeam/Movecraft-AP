@@ -47,9 +47,10 @@ public class IWorldHandler extends WorldHandler {
     private final NextTickProvider tickProvider = new NextTickProvider();
 
     public IWorldHandler() {
-        String mappings = ((CraftMagicNumbers) CraftMagicNumbers.INSTANCE).getMappingsVersion();
-        if (!mappings.equals("1afe2ffe8a9d7fc510442a168b3d4338"))
-            throw new IllegalStateException("Movecraft is not compatible with this version of Minecraft 1.19: " + mappings);
+        //String mappings = ((CraftMagicNumbers) CraftMagicNumbers.INSTANCE).getMappingsVersion();
+        //if (!mappings.equals("1afe2ffe8a9d7fc510442a168b3d4338"))
+        //    throw new IllegalStateException("Movecraft is not compatible with this version of Minecraft 1.19: " + mappings);
+        // Temporary Hacky Fix for 1.19.4
     }
 
     @Override

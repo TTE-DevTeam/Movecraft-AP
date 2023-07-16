@@ -278,7 +278,7 @@ public class AsyncManager extends BukkitRunnable {
                     break;
                 }
             }
-            if (skipTick) {
+            if (skipTick || Settings.Debug) {
                 Bukkit.getServer().broadcastMessage("skipping movement tick");
                 continue;
             }

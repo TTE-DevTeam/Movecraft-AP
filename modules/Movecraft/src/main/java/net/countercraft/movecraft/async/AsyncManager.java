@@ -272,13 +272,20 @@ public class AsyncManager extends BukkitRunnable {
             )) {
                 if (!entity.getType().equals(EntityType.PRIMED_TNT))
                     continue;
+                Bukkit.getServer().broadcastMessage("Found TNT with fuse of:" + ((TNTPrimed)entity).getFuseTicks())
                 if (((TNTPrimed)entity).getFuseTicks() <= 5) { //better safe than sorry
                     skipTick = true;
                     break;
                 }
+
             }
-            if (skipTick)
+            if (skipTick) {
+                Bukkit.getServer().broadcastMessage("Skipping cruise jump!");
                 continue;
+            }
+
+            Bukkit.getServer().broadcastMessage("Cruise jump successful!");
+
 
             cooldownCache.remove(craft);
             int dx = 0;

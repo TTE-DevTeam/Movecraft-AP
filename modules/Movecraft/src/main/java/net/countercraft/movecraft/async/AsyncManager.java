@@ -49,7 +49,10 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.TNTPrimed;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -208,6 +211,7 @@ public class AsyncManager extends BukkitRunnable {
 
             long ticksElapsed = (System.currentTimeMillis() - craft.getLastCruiseUpdate()) / 50;
             World w = craft.getWorld();
+
             // if the craft should go slower underwater, make
             // time pass more slowly there
             if (craft.getType().getBoolProperty(CraftType.HALF_SPEED_UNDERWATER)
@@ -256,6 +260,23 @@ public class AsyncManager extends BukkitRunnable {
             }
 
             if (Math.abs(ticksElapsed) < tickCoolDown)
+                continue;
+
+            //this is disgusting, don't put this in an actual release
+            boolean skipTick = false;
+            for (Entity entity : craft.getWorld().getNearbyEntities(craft.getHitBox().getMidPoint().toBukkit(craft.getWorld()),
+                    craft.getHitBox().getXLength() / 2.0 + 1,
+                    craft.getHitBox().getYLength() / 2.0 + 2,
+                    craft.getHitBox().getZLength() / 2.0 + 1
+            )) {
+                if (!entity.getType().equals(EntityType.PRIMED_TNT))
+                    continue;
+                if (((TNTPrimed)entity).getFuseTicks() <= 1) { //better safe than sorry
+                    skipTick = true;
+                    break;
+                }
+            }
+            if (skipTick)
                 continue;
 
             cooldownCache.remove(craft);

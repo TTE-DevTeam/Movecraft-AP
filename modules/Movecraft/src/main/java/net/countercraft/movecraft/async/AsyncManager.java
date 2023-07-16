@@ -270,7 +270,6 @@ public class AsyncManager extends BukkitRunnable {
                     craft.getHitBox().getZLength() / 2.0 + 1
 
             )) {
-                Bukkit.getServer().broadcastMessage("teleporting tnt");
                 if (!entity.getType().equals(EntityType.PRIMED_TNT))
                     continue;
                 if (((TNTPrimed)entity).getFuseTicks() <= 1) { //better safe than sorry
@@ -278,10 +277,8 @@ public class AsyncManager extends BukkitRunnable {
                     break;
                 }
             }
-            if (skipTick || Settings.Debug) {
-                Bukkit.getServer().broadcastMessage("skipping movement tick");
+            if (skipTick)
                 continue;
-            }
 
             cooldownCache.remove(craft);
             int dx = 0;

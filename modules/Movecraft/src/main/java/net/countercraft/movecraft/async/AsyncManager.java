@@ -272,7 +272,7 @@ public class AsyncManager extends BukkitRunnable {
             )) {
                 if (!entity.getType().equals(EntityType.PRIMED_TNT))
                     continue;
-                if (((TNTPrimed)entity).getFuseTicks() <= 1) { //better safe than sorry
+                if (((TNTPrimed)entity).getFuseTicks() <= 2) { //better safe than sorry
                     skipTick = true;
                     break;
                 }

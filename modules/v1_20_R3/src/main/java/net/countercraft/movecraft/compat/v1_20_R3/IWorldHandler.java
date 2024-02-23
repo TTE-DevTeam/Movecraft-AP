@@ -445,7 +445,7 @@ public class IWorldHandler extends WorldHandler {
         chunk.setBlockEntity(tile);
         chunk.blockEntities.put(newPosition, tile);
         final BlockState moved = ((ServerLevel)nativeWorld).getBlockState(newPosition);
-        moved.getBlock().tick(moved,(ServerLevel)world,pos,RANDOM);
+        moved.getBlock().tick(moved,(ServerLevel)nativeWorld,newPosition,RANDOM);
         
     }
 

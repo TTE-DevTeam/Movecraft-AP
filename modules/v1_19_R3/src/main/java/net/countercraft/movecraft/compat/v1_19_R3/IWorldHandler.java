@@ -413,9 +413,7 @@ public class IWorldHandler extends WorldHandler {
               block instanceof ComparatorBlock ||
               block instanceof SculkSensorBlock ||
               block instanceof PistonBaseBlock ||
-              block instanceof MovingPistonBlock ||
-              block instanceof CrafterBlock ||
-              block instanceof CopperBulbBlock;
+              block instanceof MovingPistonBlock;
     }
     private boolean isToggleableRedstoneComponent(Block block) {
       return block instanceof PressurePlateBlock ||
@@ -445,7 +443,7 @@ public class IWorldHandler extends WorldHandler {
         chunk.setBlockEntity(tile);
         chunk.blockEntities.put(newPosition, tile);
         final BlockState moved = ((ServerLevel)nativeWorld).getBlockState(newPosition);
-        moved.getBlock().tick(moved,(ServerLevel)world,pos,RANDOM);
+        moved.getBlock().tick(moved,(ServerLevel)nativeWorld,newPosition,RANDOM);
         
     }
 

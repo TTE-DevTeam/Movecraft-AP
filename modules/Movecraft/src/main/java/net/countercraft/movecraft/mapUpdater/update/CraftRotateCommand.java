@@ -35,8 +35,6 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Waterlogged;
 import org.jetbrains.annotations.NotNull;
 import org.bukkit.scheduler.BukkitRunnable;
-//import com.jeff_media.customblockdata.*;
-//import com.jeff_media.morepersistentdatatypes.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;

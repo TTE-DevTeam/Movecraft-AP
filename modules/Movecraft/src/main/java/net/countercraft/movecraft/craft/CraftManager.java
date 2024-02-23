@@ -282,9 +282,6 @@ import java.util.concurrent.Future;
 
 import static net.countercraft.movecraft.util.ChatUtils.ERROR_PREFIX;
 
-//import com.jeff_media.customblockdata.*;
-//import com.jeff_media.morepersistentdatatypes.*;
-
 
 
 import static net.countercraft.movecraft.util.ChatUtils.ERROR_PREFIX;

@@ -57,8 +57,6 @@ import net.countercraft.movecraft.sign.SpeedSign;
 import net.countercraft.movecraft.sign.StatusSign;
 import net.countercraft.movecraft.sign.SubcraftMoveSign;
 import net.countercraft.movecraft.sign.SubcraftRotateSign;
-import com.jeff_media.customblockdata.*;
-import com.jeff_media.morepersistentdatatypes.*;
 import net.countercraft.movecraft.sign.TeleportSign;
 import net.kyori.adventure.platform.bukkit.BukkitAudiences;
 import org.bukkit.Bukkit;

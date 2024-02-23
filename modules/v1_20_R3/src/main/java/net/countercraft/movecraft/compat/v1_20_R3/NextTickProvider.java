@@ -1,4 +1,4 @@
-package net.countercraft.movecraft.compat.v1_19_R3;
+package net.countercraft.movecraft.compat.v1_20_R3;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
@@ -22,11 +22,9 @@ public class NextTickProvider {
         if(box.isEmpty()){
             return null;
         }
-        if (true)
-            return null;
         Queue<ScheduledTick<?>> toRunThisTick;
         try {
-            Field toRunThisTickField = LevelTicks.class.getDeclaredField("g");
+            Field toRunThisTickField = LevelTicks.class.getDeclaredField("g"); // g is obfuscated toRunThisTick
             toRunThisTickField.setAccessible(true);
             toRunThisTick = (Queue<ScheduledTick<?>>) toRunThisTickField.get(tickList);
         } catch (NoSuchFieldException | IllegalAccessException e) {

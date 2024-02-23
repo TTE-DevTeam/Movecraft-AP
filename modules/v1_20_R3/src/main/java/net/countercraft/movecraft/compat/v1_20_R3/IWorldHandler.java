@@ -1,4 +1,4 @@
-package net.countercraft.movecraft.compat.v1_19_R3;
+package net.countercraft.movecraft.compat.v1_20_R3;
 
 import net.countercraft.movecraft.config.Settings;
 import net.countercraft.movecraft.MovecraftLocation;
@@ -16,7 +16,7 @@ import net.minecraft.world.inventory.ContainerLevelAccess;
 import net.minecraft.network.protocol.game.ClientboundPlayerPositionPacket;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
 import net.minecraft.world.level.Level;
-import org.bukkit.craftbukkit.v1_19_R3.util.RandomSourceWrapper;
+import org.bukkit.craftbukkit.v1_20_R3.util.RandomSourceWrapper;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.block.*;
 import net.minecraft.world.level.block.piston.*;
@@ -34,11 +34,11 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
-import org.bukkit.craftbukkit.v1_19_R3.CraftWorld;
-import org.bukkit.craftbukkit.v1_19_R3.CraftChunk;
-import org.bukkit.craftbukkit.v1_19_R3.block.data.CraftBlockData;
-import org.bukkit.craftbukkit.v1_19_R3.inventory.CraftInventoryView;
-import org.bukkit.craftbukkit.v1_19_R3.util.CraftMagicNumbers;
+import org.bukkit.craftbukkit.v1_20_R3.CraftWorld;
+import org.bukkit.craftbukkit.v1_20_R3.CraftChunk;
+import org.bukkit.craftbukkit.v1_20_R3.block.data.CraftBlockData;
+import org.bukkit.craftbukkit.v1_20_R3.inventory.CraftInventoryView;
+import org.bukkit.craftbukkit.v1_20_R3.util.CraftMagicNumbers;
 import net.kyori.adventure.platform.bukkit.BukkitAudiences;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
@@ -500,7 +500,9 @@ public class IWorldHandler extends WorldHandler {
               block instanceof ComparatorBlock ||
               block instanceof SculkSensorBlock ||
               block instanceof PistonBaseBlock ||
-              block instanceof MovingPistonBlock;
+              block instanceof MovingPistonBlock ||
+              block instanceof CrafterBlock ||
+              block instanceof CopperBulbBlock;
     }
     private boolean isToggleableRedstoneComponent(Block block) {
       return block instanceof PressurePlateBlock ||
@@ -515,7 +517,7 @@ public class IWorldHandler extends WorldHandler {
     private void moveBlockEntity(@NotNull Level nativeWorld, @NotNull BlockPos newPosition, @NotNull BlockEntity tile) {
         LevelChunk chunk = nativeWorld.getChunkAt(newPosition);
         try {
-            var positionField = BlockEntity.class.getDeclaredField("p"); // p is obfuscated worldPosition
+            var positionField = BlockEntity.class.getDeclaredField("p"); // o is obfuscated worldPosition
             UnsafeUtils.setField(positionField, tile, newPosition);
         }
         catch (NoSuchFieldException e) {

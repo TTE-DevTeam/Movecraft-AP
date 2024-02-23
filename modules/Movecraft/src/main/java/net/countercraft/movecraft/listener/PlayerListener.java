@@ -164,13 +164,20 @@ public class PlayerListener implements Listener {
 
     @EventHandler
     public void onCraftRelease(CraftReleaseEvent e) {
-        if (e.isCancelled()) return;
-        Craft crft = e.getCraft();
-        if (crft instanceof BaseCraft) {
-          BaseCraft craft = (BaseCraft)crft;
-          craft.getRawTrackedMap().clear();
-          craft.getCraftTags().clear();
+      if (e.isCancelled()) return;
+      Craft crft = e.getCraft();
+      if (crft instanceof BaseCraft) {
+        BaseCraft craft = (BaseCraft)crft;
+        craft.getRawTrackedMap().clear();
+        craft.getCraftTags().clear();
+        for (Block block : craft.getBlockName("SIGN")) {
+          Sign sign = (Sign)block.getState();
+          try {
+            sign.setWaxed(false);
+            sign.update(true,false);
+          } catch (Exception exc) {}
         }
+      }
     }
 
     @EventHandler
@@ -179,25 +186,22 @@ public class PlayerListener implements Listener {
         if (e.getCraft() instanceof BaseCraft) {
           final BaseCraft craft = (BaseCraft)e.getCraft();
           craft.setDataTag("origin_size",craft.getOrigBlockCount());
-          if (craft.getOrigBlockCount() >= 1000000) return;
           final int waterline = craft.getWaterLine();
           final SetHitBox interior = CraftManager.getInstance().detectCraftInterior(craft);
           final SetHitBox fullBox = new SetHitBox(craft.getHitBox().union(interior));
-          if (craft.getOrigBlockCount() < 1000000) {
-            for (Block block : craft.getBlockName("SIGN")) {
-              Sign sign = (Sign)block.getState();
-              try {
-                sign.setWaxed(true);
-                sign.update(true,false);
-              } catch (Exception exc) {}
-            }
-            for (MovecraftLocation loc : fullBox.boundingHitBox()) {
-              if (fullBox.contains(loc)) continue;
-              if (loc.getY() <= waterline) {
-                if (Tags.FLUID.contains(loc.toBukkit(craft.getWorld()).getBlock().getType())) {
-                  craft.getPhaseBlocks().put(loc.toBukkit(craft.getWorld()),Movecraft.getInstance().getWaterBlockData());
-                  continue;
-                }
+          for (Block block : craft.getBlockName("SIGN")) {
+            Sign sign = (Sign)block.getState();
+            try {
+              sign.setWaxed(true);
+              sign.update(true,false);
+            } catch (Exception exc) {}
+          }
+          for (MovecraftLocation loc : fullBox.boundingHitBox()) {
+            if (fullBox.contains(loc)) continue;
+            if (loc.getY() <= waterline) {
+              if (Tags.FLUID.contains(loc.toBukkit(craft.getWorld()).getBlock().getType())) {
+                craft.getPhaseBlocks().put(loc.toBukkit(craft.getWorld()),Movecraft.getInstance().getWaterBlockData());
+                continue;
               }
             }
           }

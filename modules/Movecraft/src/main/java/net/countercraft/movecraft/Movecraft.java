@@ -302,7 +302,6 @@ public class Movecraft extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new SubcraftMoveSign(), this);
         getServer().getPluginManager().registerEvents(new TeleportSign(), this);
         getServer().getPluginManager().registerEvents(new ScuttleSign(), this);
-        CustomBlockData.registerListener(this);
 
         logger.info(String.format(
                 I18nSupport.getInternationalisedString("Startup - Enabled message"),

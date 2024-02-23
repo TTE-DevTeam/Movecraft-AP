@@ -1,9 +1,9 @@
 package net.countercraft.movecraft.commands;
 
 import net.countercraft.movecraft.craft.Craft;
+import net.countercraft.movecraft.craft.BaseCraft;
 import net.countercraft.movecraft.craft.CraftManager;
 import net.countercraft.movecraft.craft.PilotedCraft;
-import net.countercraft.movecraft.craft.SinkingCraft;
 import net.countercraft.movecraft.craft.type.CraftType;
 import net.countercraft.movecraft.localisation.I18nSupport;
 import net.countercraft.movecraft.util.hitboxes.HitBox;
@@ -33,36 +33,50 @@ public class CraftReportCommand implements CommandExecutor{
                 page = 1;
             else
                 page = Integer.parseInt(args[0]);
-        }
-        catch (NumberFormatException e) {
-            commandSender.sendMessage(MOVECRAFT_COMMAND_PREFIX
-                    + I18nSupport.getInternationalisedString("Paginator - Invalid Page") + "\"" + args[0] + "\"");
+        }catch(NumberFormatException e){
+            commandSender.sendMessage(MOVECRAFT_COMMAND_PREFIX + I18nSupport.getInternationalisedString("Paginator - Invalid Page") + "\"" + args[0] + "\"");
             return true;
         }
-        if (CraftManager.getInstance().isEmpty()) {
-            commandSender.sendMessage(MOVECRAFT_COMMAND_PREFIX
-                    + I18nSupport.getInternationalisedString("Craft Report - None Found"));
+        if (CraftManager.getInstance().isEmpty()){
+            commandSender.sendMessage(MOVECRAFT_COMMAND_PREFIX + I18nSupport.getInternationalisedString("Craft Report - None Found"));
             return true;
         }
         TopicPaginator paginator = new TopicPaginator(I18nSupport.getInternationalisedString("Craft Report"));
         for (Craft craft : CraftManager.getInstance()) {
             HitBox hitBox = craft.getHitBox();
-            paginator.addLine(
-                    (craft instanceof SinkingCraft ? ChatColor.RED : craft.getDisabled() ? ChatColor.BLUE : "")
-                    + craft.getType().getStringProperty(CraftType.NAME) + " " + ChatColor.RESET
-                    + (craft instanceof PilotedCraft ? ((PilotedCraft) craft).getPilot().getName()
-                            : I18nSupport.getInternationalisedString("None")) + " "
-                    + hitBox.size() + " @ " + hitBox.getMinX() + "," + hitBox.getMinY() + "," + hitBox.getMinZ()
-                    + " - " + String.format("%.2f", 1000 * craft.getMeanCruiseTime()) + "ms"
-            );
+            if (craft instanceof BaseCraft) {
+                int origin_overall_size = (Integer)((BaseCraft)craft).getDataTag("origin_size");
+                int current_overall_size = ((BaseCraft)craft).getHitBox().size()-(((BaseCraft)craft).getTrackedMovecraftLocs("air")).size();
+                paginator.addLine((craft.getSinking() ? ChatColor.RED : craft.getDisabled() ? ChatColor.BLUE : "") +
+                        craft.getType().getStringProperty(CraftType.NAME) + " " +
+                        ChatColor.RESET +
+                        (((BaseCraft)craft).getNotificationPlayer() == null ? "None" : ((BaseCraft)craft).getNotificationPlayer().getDisplayName())+" "+
+                        current_overall_size + " / " + origin_overall_size + " @ " +
+                        hitBox.getMinX() + "," +
+                        hitBox.getMinY() + "," +
+                        hitBox.getMinZ() + " - " +
+                        String.format("%.2f", 1000 * craft.getMeanCruiseTime()) + "ms");
+                
+            } else {
+                paginator.addLine((craft.getSinking() ? ChatColor.RED : craft.getDisabled() ? ChatColor.BLUE : "") +
+                        craft.getType().getStringProperty(CraftType.NAME) + " " +
+                        ChatColor.RESET +
+                        ((craft).getNotificationPlayer() == null ? "None" : (craft).getNotificationPlayer().getDisplayName())+" "+
+                        craft.getOrigBlockCount() + " @ " +
+                        hitBox.getMinX() + "," +
+                        hitBox.getMinY() + "," +
+                        hitBox.getMinZ() + " - " +
+                        String.format("%.2f", 1000 * craft.getMeanCruiseTime()) + "ms");
+
+            }
         }
-        if (!paginator.isInBounds(page)) {
-            commandSender.sendMessage(MOVECRAFT_COMMAND_PREFIX
-                    + I18nSupport.getInternationalisedString("Paginator - Invalid page") + "\"" + page + "\"");
+        if(!paginator.isInBounds(page)){
+            commandSender.sendMessage(MOVECRAFT_COMMAND_PREFIX + I18nSupport.getInternationalisedString("Paginator - Invalid page") + "\"" + page + "\"");
             return true;
         }
-        for (String line : paginator.getPage(page))
+        for(String line : paginator.getPage(page))
             commandSender.sendMessage(line);
         return true;
+
     }
 }

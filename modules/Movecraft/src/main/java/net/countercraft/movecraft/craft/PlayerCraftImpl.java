@@ -19,18 +19,39 @@ public class PlayerCraftImpl extends BaseCraft implements PlayerCraft {
     public PlayerCraftImpl(@NotNull CraftType type, @NotNull World world, @NotNull Player pilot) {
         super(type, world);
         this.pilot = pilot;
-        pilotLocked = false;
-        pilotLockedX = 0.0;
-        pilotLockedY = 0.0;
-        pilotLockedZ = 0.0;
+        setNotificationPlayer(pilot);
+        this.pilotLocked = false;
+        this.pilotLockedX = 0.0;
+        this.pilotLockedY = 0.0;
+        this.pilotLockedZ = 0.0;
+        this.addPassenger(pilot);
+    }
+    public PlayerCraftImpl(@NotNull Craft original, @NotNull Player pilot) {
+        super(original.getType(), original.getWorld());
+        hitBox = original.getHitBox();
+        fluidLocations = original.getFluidLocations();
+        setCruiseDirection(original.getCruiseDirection());
+        setLastTranslation(original.getLastTranslation());
+        setAudience(original.getAudience());
+        setNotificationPlayer(pilot);
+        setPilot(pilot);
+        setWorld(original.getWorld());
+        this.pilotLocked = false;
+        this.pilotLockedX = 0.0;
+        this.pilotLockedY = 0.0;
+        this.pilotLockedZ = 0.0;
+        if (original instanceof BaseCraft) {
+            this.setPassengers(((BaseCraft)original).getPassengers());
+            this.getRawTrackedMap().putAll(((BaseCraft)original).getRawTrackedMap());
+            this.getCraftTags().putAll(((BaseCraft)original).craftTags);
+        }
     }
 
     @Override
     public boolean equals(Object obj) {
-        if (!(obj instanceof PlayerCraftImpl))
+        if(!(obj instanceof PlayerCraftImpl))
             return false;
-
-        return id.equals(((PlayerCraftImpl) obj).id);
+        return this.id.equals(((PlayerCraftImpl)obj).id);
     }
 
     @Override
@@ -39,8 +60,11 @@ public class PlayerCraftImpl extends BaseCraft implements PlayerCraft {
     }
 
     @NotNull
+    public void setPilot(Player pilot) {
+        this.pilot = pilot;
+    }
     @Override
-    public Player getPilot() {
+    public @NotNull Player getPilot() {
         return pilot;
     }
 

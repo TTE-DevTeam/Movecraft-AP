@@ -34,32 +34,38 @@ import org.jetbrains.annotations.NotNull;
 import java.util.HashSet;
 import java.util.Set;
 
-public final class SubcraftRotateSign implements Listener {
-    private static final String HEADER = "Subcraft Rotate";
+public final class SubcraftMoveSign implements Listener {
+    private static final String HEADER = "Subcraft Move";
     private final Set<MovecraftLocation> rotating = new HashSet<>();
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = false)
-    public void onSignClick(@NotNull PlayerInteractEvent event) {
-        MovecraftRotation rotation;
+    public void onSignClick(@NotNull final PlayerInteractEvent event) {
+        int multi = 0;
         if (event.getAction() == Action.RIGHT_CLICK_BLOCK)
-            rotation = MovecraftRotation.CLOCKWISE;
+            multi = 1;
         else if (event.getAction() == Action.LEFT_CLICK_BLOCK)
-            rotation = MovecraftRotation.ANTICLOCKWISE;
+            multi = -1;
         else
             return;
         if (event.getPlayer().isSneaking())
             return;
+        MovecraftLocation vector = new MovecraftLocation(0,0,0);
+
         BlockState state = event.getClickedBlock().getState();
         if (!(state instanceof Sign))
             return;
         Sign sign = (Sign) state;
-        if (!ChatColor.stripColor(sign.getLine(0)).equalsIgnoreCase(HEADER))
+        if (!ChatColor.stripColor(sign.getLine(0)).equalsIgnoreCase(HEADER)) {
             return;
+        }
+        if ((ChatColor.stripColor(sign.getLine(2))).length() == 0) {
+            return;
+        }
 
         Location loc = event.getClickedBlock().getLocation();
         MovecraftLocation startPoint = new MovecraftLocation(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
         if (rotating.contains(startPoint)) {
-            event.getPlayer().sendMessage("You are already Rotating");
+            event.getPlayer().sendMessage("You are already Moving");
             event.setCancelled(true);
             return;
         }
@@ -67,16 +73,64 @@ public final class SubcraftRotateSign implements Listener {
         // rotate subcraft
         String craftTypeStr = ChatColor.stripColor(sign.getLine(1));
         CraftType craftType = CraftManager.getInstance().getCraftTypeFromString(craftTypeStr);
-        if (craftType == null)
+        if (craftType == null) {
             return;
-        if (ChatColor.stripColor(sign.getLine(2)).equals("")
-                && ChatColor.stripColor(sign.getLine(3)).equals("")) {
-            sign.setLine(2, "_\\ /_");
-            sign.setLine(3, "/ \\");
-            sign.update(false, false);
+        }
+        String[] coords = (ChatColor.stripColor(sign.getLine(2))).split(",");
+        int maxMove = craftType.getIntProperty(CraftType.MAX_STATIC_MOVE);
+        if (coords.length == 0 || coords[0].length() <= 0) {
+            return;
+        }
+        if (coords.length == 1) {
+            vector.y = Integer.parseInt(coords[0]);
+        }
+        if (coords.length == 2) {
+            vector.x = Integer.parseInt(coords[0]);
+            vector.z = Integer.parseInt(coords[1]);
+        }
+        if (coords.length >= 3) {
+            vector.x = Integer.parseInt(coords[0]);
+            vector.y = Integer.parseInt(coords[1]);
+            vector.z = Integer.parseInt(coords[2]);
+        }
+        int dLeftRight = vector.x;
+        int dBackwardForward = vector.z;
+        if (dLeftRight > maxMove)
+            dLeftRight = maxMove;
+        if (dLeftRight < -maxMove)
+            dLeftRight = -maxMove;
+        if (vector.y > maxMove)
+            vector.y = maxMove;
+        if (vector.y < -maxMove)
+            vector.y = -maxMove;
+        if (dBackwardForward > maxMove)
+            dBackwardForward = maxMove;
+        if (dBackwardForward < -maxMove)
+            dBackwardForward = -maxMove;
+        switch (sign.getRawData()) {
+            case 0x3:
+                // North
+                vector.x = dLeftRight;
+                vector.z = -dBackwardForward;
+                break;
+            case 0x2:
+                // South
+                vector.x = -dLeftRight;
+                vector.z = dBackwardForward;
+                break;
+            case 0x4:
+                // East
+                vector.x = dBackwardForward;
+                vector.z = dLeftRight;
+                break;
+            case 0x5:
+                // West
+                vector.x = -dBackwardForward;
+                vector.z = -dLeftRight;
+                break;
         }
 
-        if (!event.getPlayer().hasPermission("movecraft." + craftTypeStr + ".pilot") || !event.getPlayer().hasPermission("movecraft." + craftTypeStr + ".rotate")) {
+        if (!event.getPlayer().hasPermission("movecraft." + craftTypeStr + ".pilot") || !event.getPlayer().hasPermission("movecraft." + craftTypeStr + ".translate")) {
             event.getPlayer().sendMessage(I18nSupport.getInternationalisedString("Insufficient Permissions"));
             return;
         }
@@ -89,12 +143,15 @@ public final class SubcraftRotateSign implements Listener {
             }
         }
 
-
+        final int x = vector.x;
+        final int y = vector.y;
+        final int z = vector.z;
+        final int mult = multi;
         final Player player = event.getPlayer();
         World world = event.getClickedBlock().getWorld();
         if (CraftManager.getInstance().getCraftFromBlock(event.getClickedBlock()) != null) {
             if (CraftManager.getInstance().getCraftFromBlock(event.getClickedBlock()) instanceof SubCraftImpl) {
-                event.getPlayer().sendMessage("You are already rotating.");
+                event.getPlayer().sendMessage("You are already moving.");
                 event.setCancelled(true);
                 return;
             }
@@ -104,6 +161,7 @@ public final class SubcraftRotateSign implements Listener {
             //    return;
             //}
         }
+        event.setCancelled(true);
         rotating.add(startPoint);
         CraftManager.getInstance().detect(
                 startPoint,
@@ -135,12 +193,12 @@ public final class SubcraftRotateSign implements Listener {
                                 craft.getHitBox().getYLength() / 1.5 + 3.0,
                                 craft.getHitBox().getZLength() / 2.0 + 3.0));
                         if (parent != null) {
-                            ((BaseCraft)craft).passengers.addAll(parent.getPassengers());
+                            ((BaseCraft)craft).setPassengers(parent.getPassengers());
                             var newHitbox = parent.getHitBox().difference(craft.getHitBox());;
                             parent.setHitBox(newHitbox);
                         }
                     }
-                    craft.rotate(rotation, startPoint, true);
+                    craft.translate(mult*x,mult*y,mult*z);
                     new BukkitRunnable() {
                         @Override
                         public void run() {

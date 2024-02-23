@@ -12,75 +12,73 @@ import java.util.Iterator;
 import java.util.Set;
 
 public interface HitBox extends Iterable<MovecraftLocation>{
-    int getMinX();
-    int getMinY();
-    int getMinZ();
-    int getMaxX();
-    int getMaxY();
-    int getMaxZ();
 
-    default int getXLength() {
-        if (isEmpty())
+    public int getMinX();
+    public int getMinY();
+    public int getMinZ();
+    public int getMaxX();
+    public int getMaxY();
+    public int getMaxZ();
+
+    default public int getXLength(){
+        if(this.isEmpty()){
             return 0;
-
-        return Math.abs(getMaxX() - getMinX());
+        }
+        return Math.abs(this.getMaxX()-this.getMinX());
     }
-
-    default int getYLength() {
-        if (isEmpty())
+    default public int getYLength(){
+        if(this.isEmpty()){
             return 0;
-
-        return Math.abs(getMaxY() - getMinY());
+        }
+        return Math.abs(this.getMaxY()-this.getMinY());
     }
-
-    default int getZLength() {
-        if (isEmpty())
+    default public int getZLength(){
+        if(this.isEmpty()){
             return 0;
-
-        return Math.abs(getMaxZ() -getMinZ());
+        }
+        return Math.abs(this.getMaxZ()-this.getMinZ());
     }
 
-    default boolean isEmpty() {
-        return size() == 0;
+    default public boolean isEmpty(){
+        return this.size() == 0;
     }
+    public int size();
 
-    int size();
-
-    private static int average(int high, int low) {
-        return (high&low) + (high^low) / 2;
+    private static int average(int high, int low){
+        return (high&low) + (high^low)/2;
     }
 
     @NotNull
-    default MovecraftLocation getMidPoint() throws EmptyHitBoxException {
-        if (isEmpty())
+    default public MovecraftLocation getMidPoint(){
+        if(this.isEmpty()){
             throw new EmptyHitBoxException();
-
+        }
         return new MovecraftLocation(average(getMaxX(), getMinX()), average(getMaxY(), getMinY()),average(getMaxZ(), getMinZ()));
     }
 
     @NotNull
     @Override
-    Iterator<MovecraftLocation> iterator();
+    public Iterator<MovecraftLocation> iterator();
 
-    boolean contains(@NotNull MovecraftLocation location);
+    public boolean contains(@NotNull MovecraftLocation location);
 
-    default boolean contains(int x, int y, int z) {
-        return contains(new MovecraftLocation(x, y, z));
+    default boolean contains(int x, int y, int z){
+        return this.contains(new MovecraftLocation(x,y,z));
     }
 
     boolean containsAll(Collection<? extends MovecraftLocation> collection);
 
-    default boolean inBounds(double x, double y, double z) {
-        if (isEmpty())
+    default boolean inBounds(double x, double y, double z){
+        if(this.isEmpty()){
             return false;
-
-        return x >= getMinX() && x <= getMaxX() &&
-                y >= getMinY() && y <= getMaxY()&&
-                z >= getMinZ() && z <= getMaxZ();
+        }
+        return x >= this.getMinX() && x <= this.getMaxX() &&
+                y >= this.getMinY() && y <= this.getMaxY()&&
+                z >= this.getMinZ() && z <= this.getMaxZ();
     }
 
-    default boolean inBounds(MovecraftLocation location) {
-        return inBounds(location.getX(),location.getY(),location.getZ());
+    default boolean inBounds(MovecraftLocation location){
+        return this.inBounds(location.getX(),location.getY(),location.getZ());
     }
 
     @NotNull

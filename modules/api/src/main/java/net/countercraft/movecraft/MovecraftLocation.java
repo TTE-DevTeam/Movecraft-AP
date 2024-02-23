@@ -20,7 +20,13 @@ package net.countercraft.movecraft;
 import com.google.common.primitives.UnsignedInteger;
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
+import org.bukkit.block.data.BlockData;
 import org.jetbrains.annotations.NotNull;
+import net.countercraft.movecraft.craft.Craft;
+import java.util.HashMap;
+import net.countercraft.movecraft.util.MathUtils;
 
 import static net.countercraft.movecraft.util.BitMath.mask;
 import static net.countercraft.movecraft.util.BitMath.unpackX;
@@ -30,9 +36,13 @@ import static net.countercraft.movecraft.util.BitMath.unpackZ;
 /**
  * Represents a Block aligned coordinate triplet.
  */
-final public class MovecraftLocation implements Comparable<MovecraftLocation>{
-    private final int x, y, z;
+public class MovecraftLocation implements Comparable<MovecraftLocation>{
+    public int x, y, z;
 
+
+    public static void sendBlockUpdated(Craft craft, HashMap<Location,BlockData> sendBlocks) {
+        return;
+    }
     public MovecraftLocation(int x, int y, int z) {
         this.x = x;
         this.y = y;
@@ -63,6 +73,9 @@ final public class MovecraftLocation implements Comparable<MovecraftLocation>{
      */
     public MovecraftLocation translate(int dx, int dy, int dz) {
         return new MovecraftLocation(x + dx, y + dy, z + dz);
+    }
+    public MovecraftLocation translate(MovecraftLocation l) {
+        return this.add(l);
     }
 
     @Override
@@ -111,8 +124,14 @@ final public class MovecraftLocation implements Comparable<MovecraftLocation>{
     public double distance(MovecraftLocation other) {
         return Math.sqrt(distanceSquared(other));
     }
+    public TrackedLocation toTracked(MovecraftLocation midPoint) {
+        return new TrackedLocation(midPoint,this);
+    }
     public Location toBukkit(World world){
         return new Location(world, this.x, this.y, this.z);
+    }
+    public boolean isChunkLoaded(World world){
+        return world.isChunkLoaded((int)(this.x / 16),(int)(this.z / 16));
     }
 
     public static Location toBukkit(World world, MovecraftLocation location){
@@ -122,6 +141,10 @@ final public class MovecraftLocation implements Comparable<MovecraftLocation>{
     @Override
     public String toString(){
         return "(" + x + "," + y + "," + z +")";
+    }
+
+    public MovecraftLocation rotate(MovecraftLocation origin, MovecraftRotation rotation) {
+        return MathUtils.rotateVec(rotation,this.subtract(origin)).add(origin);
     }
 
 

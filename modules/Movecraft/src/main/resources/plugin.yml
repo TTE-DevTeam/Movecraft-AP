@@ -1,8 +1,8 @@
 name: Movecraft
 version: ${project.version}
-api-version: 1.16
+api-version: 1.19
 description: The original flight and movement plugin for minecraft.
-authors: [cccm5, BaccaYarro, TylerS1066, eirik1996, drfiveminusmint, HumorousFool]
+author: "C_Corp2002, Based off of: cccm5, BaccaYarro, TylerS1066, eirik1996, drfiveminusmint, HumorousFool's Work"
 website: https://github.com/APDevTeam/Movecraft
 main: net.countercraft.movecraft.Movecraft
 database: false
@@ -20,11 +20,14 @@ commands:
     description: reports on all crafts within detection range
     usage: /contacts <page>
   craftreport:
-    description: reports on all active craft in the world you are in
+    description: reports on all active craft in all worlds
     usage: /craftreport <page>
   cruise:
     description: Starts your craft cruising
     usage: /cruise [north|south|east|west|on|off]
+  dc:
+    description: Toggles Direct Control (WASD/Keyboard)
+    usage: /dc
   rotate:
     description: Rotates your craft
     usage: /rotate [right|left]
@@ -32,7 +35,7 @@ commands:
     description: If enabled, returns you to a craft you have fallen out of
     usage: /manoverboard
   scuttle:
-    description: Sinks piloted craft
+    description: Sinks a piloted craft
     usage: /scuttle
   crafttype:
     description: Get information on a specifc craft type

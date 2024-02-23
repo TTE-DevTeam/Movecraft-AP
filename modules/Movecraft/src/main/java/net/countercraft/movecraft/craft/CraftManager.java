@@ -317,15 +317,10 @@ public class CraftManager implements Iterable<Craft>{
         return -1;
     }
     private CraftManager(boolean loadCraftTypes) {
-        ItemStack resonantCrystal = new ItemStack(Material.GLOWSTONE_DUST);
-        ItemMeta meta = resonantCrystal.getItemMeta();
-        meta.setCustomModelData(1);
-        resonantCrystal.setItemMeta(meta);
-        this.addFuelType(new ItemStack(Material.COAL),15.0);
-        this.addFuelType(new ItemStack(Material.CHARCOAL),15.0);
-        this.addFuelType(new ItemStack(Material.COAL_BLOCK),45.0);
-        this.addFuelType(new ItemStack(Material.DRIED_KELP_BLOCK),45.0);
-        this.addFuelType(resonantCrystal,75.0);
+        this.addFuelType(new ItemStack(Material.COAL),45.0);
+        this.addFuelType(new ItemStack(Material.CHARCOAL),45.0);
+        this.addFuelType(new ItemStack(Material.COAL_BLOCK),125.0);
+        this.addFuelType(new ItemStack(Material.DRIED_KELP_BLOCK),125.0);
         if(loadCraftTypes) {
             this.craftTypes = loadCraftTypes();
         }
@@ -390,22 +385,23 @@ public class CraftManager implements Iterable<Craft>{
         CraftPreSinkEvent event = new CraftPreSinkEvent(craft);
         Bukkit.getServer().getPluginManager().callEvent(event);
         if (event.isCancelled()) {
-            (((BaseCraft)craft)).sinking = false;
+            ((BaseCraft)craft).setSinking(false);
             return craft;
         }
-        (((BaseCraft)craft)).sinking = true;
+        ((BaseCraft)craft).setSinking(true);
         CraftSinkEvent sinkevent = new CraftSinkEvent(craft);
         Bukkit.getServer().getPluginManager().callEvent(sinkevent);
+
         return craft;
     }
     public Craft quietSink(@NotNull Craft craft) {
         CraftPreSinkEvent event = new CraftPreSinkEvent(craft);
         Bukkit.getServer().getPluginManager().callEvent(event);
         if (event.isCancelled()) {
-            (((BaseCraft)craft)).sinking = false;
+            ((BaseCraft)craft).setSinking(failMessage);
             return craft;
         }
-        (((BaseCraft)craft)).sinking = true;
+        ((BaseCraft)craft).setSinking(true);
         return craft;
     }
 
@@ -436,397 +432,47 @@ public class CraftManager implements Iterable<Craft>{
         return found;
         }
         public boolean forceCheckFuel(Craft craft, int fuelBurnRate, double percBurnChance, ItemStack fuelItem, ItemStack wasteItem) {
-        //String composite_block = "minecraft:note_block[instrument=hat,note=15,powered=false]";
-        if (craft.getSinking())
-            return true;
-        if (craft instanceof SinkingCraftImpl)
-            return true;
-        int chance = 5;
-        if (fuelBurnRate > -5) {
-            //Movecraft.getInstance().getLogger().log(Level.INFO, "FUEL-BURN RNG: "+fuelBurnRate+" FUEL-BURN CHANCE: "+percBurnChance);
-            Block invBlock = null;
-            boolean barrelFound = false;
-            final Set<Block> blocks = new HashSet<>();
-                blocks.addAll((((BaseCraft)craft)).getBlockType(Material.DROPPER));
-                blocks.addAll((((BaseCraft)craft)).getBlockType(Material.FURNACE));
-            if (((BaseCraft)craft).getTrackedMovecraftLocs("fuel_locations").size() > 0) {
-                blocks.addAll((((BaseCraft)craft)).getTrackedBlocks("fuel_locations"));
-            }
-            for (Block b : blocks) {
-                if (b.getType() == Material.FURNACE) {
-                InventoryHolder inventoryHolder1 = (InventoryHolder)b.getState();
-                if((((InventoryHolder)b.getState()).getInventory().getContents()) == null)continue;
-                ListIterator<ItemStack> listIterator1 = inventoryHolder1.getInventory().iterator();
-                while (listIterator1.hasNext()) {
-                    ItemStack stack = listIterator1.next();
-                    invBlock = b;
-                    if (stack != null && (stack.isSimilar(fuelItem) || isPowerItem(stack))) {
-                    chance = rand.nextInt((int)percBurnChance+1);
-                    if ((int)chance >= (int)percBurnChance - (int)(((int)percBurnChance)-1)) {
-                        int amount = stack.getAmount();
-                        stack.setAmount(amount);
-                    } else {
-                        int amount = stack.getAmount();
-                        stack.setAmount(amount - (int)fuelBurnRate);
-                        if (wasteItem.getType() != Material.AIR)
-                        ((World)invBlock.getWorld()).dropItem(invBlock.getLocation(),wasteItem);
-                    }
-                    return true;
-                    }
+            if (craft.getSinking())
+                return true;
+            if (craft instanceof SinkingCraftImpl)
+                return true;
+            int chance = 5;
+            if (fuelBurnRate > 0) {
+                //Movecraft.getInstance().getLogger().log(Level.INFO, "FUEL-BURN RNG: "+fuelBurnRate+" FUEL-BURN CHANCE: "+percBurnChance);
+                Block invBlock = null;
+                boolean barrelFound = false;
+                final Set<Block> blocks = new HashSet<>();
+                    blocks.addAll(((BaseCraft)craft).getBlockType(Material.DROPPER));
+                    blocks.addAll(((BaseCraft)craft).getBlockType(Material.FURNACE));
+                if (((BaseCraft)craft).getTrackedMovecraftLocs("fuel_locations").size() > 0) {
+                    blocks.addAll(((BaseCraft)craft).getTrackedBlocks("fuel_locations"));
                 }
-                }
-                if (b.getType() == Material.DROPPER) {
-                if (b.getRelative(0, -1, 0).getType() == Material.IRON_BLOCK && b.getRelative(0, 1, 0).getType() == Material.BARREL) {
-                    barrelFound = true;
-                    invBlock = b.getRelative(0, 1, 0);
-                }
-                if (b.getRelative(0, 1, 0).getType() == Material.IRON_BLOCK && b.getRelative(0, -1, 0).getType() == Material.BARREL) {
-                    barrelFound = true;
-                    invBlock = b.getRelative(0, -1, 0);
-                }
-                if (barrelFound == true) {
-                    if (invBlock == null)
-                    continue;
-                } else {
-                    if (invBlock == null)
-                    continue;
-                }
-                if (invBlock.getType() == Material.DROPPER || invBlock.getType() == Material.BARREL) {
-                    InventoryHolder inventoryHolder1 = (InventoryHolder)invBlock.getState();
+                for (Block b : blocks) {
+                    if (b.getType() == Material.FURNACE) {
+                    InventoryHolder inventoryHolder1 = (InventoryHolder)b.getState();
+                    if((((InventoryHolder)b.getState()).getInventory().getContents()) == null)continue;
                     ListIterator<ItemStack> listIterator1 = inventoryHolder1.getInventory().iterator();
-                    if((((InventoryHolder)invBlock.getState()).getInventory().getContents()) == null)continue;
                     while (listIterator1.hasNext()) {
-                    ItemStack stack = listIterator1.next();
-                    if (stack != null && isPowerItem(stack)) {
-                        chance = rand.nextInt((int)percBurnChance+1);
-                        if ((int)chance >= (int)percBurnChance - (int)(((int)percBurnChance)-1)) {
-                        int amount = stack.getAmount();
-                        stack.setAmount(amount);
-                        } else {
-                        int amount = stack.getAmount();
-                        stack.setAmount(amount - (int)fuelBurnRate);
-                        if (wasteItem.getType() != Material.AIR)
-                            ((World)invBlock.getWorld()).dropItem(invBlock.getLocation(),wasteItem);
+                        ItemStack stack = listIterator1.next();
+                        invBlock = b;
+                        if (stack != null && (stack.isSimilar(fuelItem)) {
+                            chance = rand.nextInt((int)percBurnChance+1);
+                            if ((int)chance >= (int)percBurnChance - (int)(((int)percBurnChance)-1)) {
+                                int amount = stack.getAmount();
+                                stack.setAmount(amount);
+                            } else {
+                                int amount = stack.getAmount();
+                                stack.setAmount(amount - (int)fuelBurnRate);
+                                if (wasteItem.getType() != Material.AIR)
+                                ((World)invBlock.getWorld()).dropItem(invBlock.getLocation(),wasteItem);
+                            }
+                            return true;
                         }
-                        return true;
-                    }
-                    }
-                }
                 }
             }
         }
     return false;
   }
-    public static boolean isPowerItem(ItemStack i1) {
-        if (i1.getItemMeta().hasCustomModelData()) {
-            if (i1.getType() == Material.GLOWSTONE_DUST) {
-                if (i1.getItemMeta().getCustomModelData() == 1) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-    public static void copySetBlockData(Block oldBlock, Block block) {
-        BlockState st = oldBlock.getState();
-        BlockState state = oldBlock.getState(true);
-        Material type = oldBlock.getType();
-        BlockData data = oldBlock.getBlockData();
-        if (st instanceof Container) {
-            ((Container) st).getSnapshotInventory().clear();
-            st.update(true, false);
-        }
-        if (block.getType() != type) {
-            block.setType(type, false);
-        }
-        if (data != null)
-            block.setBlockData(data);
-        BlockState newState = block.getState(true);
-        if (state != null) {
-            if (state instanceof org.bukkit.block.Beehive) {
-                Beehive theNew = (Beehive) newState;
-                Beehive theOld = (Beehive) state;
-            }
-            if (state instanceof Container) {
-                Container newContainer = (Container) newState;
-                Container oldContainer = (Container) state;
-                newContainer.getSnapshotInventory().setContents(oldContainer.getSnapshotInventory().getContents());
-            }
-            if (state instanceof Structure) {
-                Structure newStructure = (Structure) newState;
-                Structure oldStructure = (Structure) state;
-                newStructure.setAuthor(oldStructure.getAuthor());
-                newStructure.setBoundingBoxVisible(oldStructure.isBoundingBoxVisible());
-                newStructure.setIgnoreEntities(oldStructure.isIgnoreEntities());
-                newStructure.setIntegrity(oldStructure.getIntegrity());
-                newStructure.setMetadata(oldStructure.getMetadata());
-                newStructure.setMirror(oldStructure.getMirror());
-                newStructure.setRelativePosition(oldStructure.getRelativePosition());
-                newStructure.setRotation(oldStructure.getRotation());
-                newStructure.setSeed(oldStructure.getSeed());
-                newStructure.setShowAir(oldStructure.isShowAir());
-                newStructure.setStructureName(oldStructure.getStructureName());
-                newStructure.setStructureSize(oldStructure.getStructureSize());
-                newStructure.setUsageMode(oldStructure.getUsageMode());
-            }
-            if (state instanceof Skull) {
-                Skull newSkull = (Skull) newState;
-                Skull oldSkull = (Skull) state;
-                if (oldSkull.hasOwner())
-                    newSkull.setOwningPlayer(oldSkull.getOwningPlayer());
-            }
-            if (state instanceof Sign) {
-                Sign newSign = (Sign) newState;
-                Sign oldSign = (Sign) state;
-                for (int i = 0; i < oldSign.getLines().length; i++) {
-                    newSign.setLine(i, oldSign.getLine(i));
-                }
-                newSign.setEditable(oldSign.isEditable());
-            }
-            if (state instanceof Lockable) {
-                Lockable newLockable = (Lockable) newState;
-                Lockable oldLockable = (Lockable) state;
-                newLockable.setLock(oldLockable.getLock());
-            }
-            if (state instanceof Jukebox) {
-                Jukebox newJukebox = (Jukebox) newState;
-                Jukebox oldJukebox = (Jukebox) state;
-                newJukebox.setPlaying(oldJukebox.getPlaying());
-                newJukebox.setRecord(oldJukebox.getRecord());
-            }
-            if (state instanceof Lectern) {
-                Lectern newLectern = (Lectern) newState;
-                Lectern oldLectern = (Lectern) state;
-                newLectern.setPage(oldLectern.getPage());
-            }
-            if (state instanceof EndGateway) {
-                EndGateway newEndGateway = (EndGateway) newState;
-                EndGateway oldEndGateway = (EndGateway) state;
-                newEndGateway.setAge(oldEndGateway.getAge());
-                ;
-                newEndGateway.setExactTeleport(oldEndGateway.isExactTeleport());
-                newEndGateway.setExitLocation(oldEndGateway.getExitLocation());
-            }
-            if (state instanceof Furnace) {
-                Furnace newFurnace = (Furnace) newState;
-                Furnace oldFurnace = (Furnace) state;
-                newFurnace.setBurnTime(oldFurnace.getBurnTime());
-                newFurnace.setCookTime(oldFurnace.getCookTime());
-                newFurnace.setCookTimeTotal(oldFurnace.getCookTimeTotal());
-            }
-            if (state instanceof CreatureSpawner) {
-                CreatureSpawner newCreatureSpawner = (CreatureSpawner) newState;
-                CreatureSpawner oldCreatureSpawner = (CreatureSpawner) state;
-                newCreatureSpawner.setDelay(oldCreatureSpawner.getDelay());
-                newCreatureSpawner.setMaxNearbyEntities(oldCreatureSpawner.getMaxNearbyEntities());
-                newCreatureSpawner.setMaxSpawnDelay(oldCreatureSpawner.getMaxSpawnDelay());
-                newCreatureSpawner.setMinSpawnDelay(oldCreatureSpawner.getMinSpawnDelay());
-                newCreatureSpawner.setRequiredPlayerRange(oldCreatureSpawner.getRequiredPlayerRange());
-                newCreatureSpawner.setSpawnCount(oldCreatureSpawner.getSpawnCount());
-                newCreatureSpawner.setSpawnRange(oldCreatureSpawner.getSpawnRange());
-                newCreatureSpawner.setSpawnedType(oldCreatureSpawner.getSpawnedType());
-            }
-            if (state instanceof Banner) {
-                Banner newBanner = (Banner) newState;
-                Banner oldBanner = (Banner) state;
-                newBanner.setBaseColor(oldBanner.getBaseColor());
-                newBanner.setPatterns(oldBanner.getPatterns());
-            }
-            if (state instanceof BrewingStand) {
-                BrewingStand newBrewingStand = (BrewingStand) newState;
-                BrewingStand oldBrewingStand = (BrewingStand) state;
-                newBrewingStand.setBrewingTime(oldBrewingStand.getBrewingTime());
-                newBrewingStand.setFuelLevel(oldBrewingStand.getFuelLevel());
-            }
-            if (state instanceof Campfire) {
-                Campfire newCampfire = (Campfire) newState;
-                Campfire oldCampfire = (Campfire) state;
-                for (int i = 0; i < oldCampfire.getSize(); i++) {
-                    newCampfire.setItem(i, oldCampfire.getItem(i));
-                    newCampfire.setCookTime(i, oldCampfire.getCookTime(i));
-                    newCampfire.setCookTimeTotal(i, oldCampfire.getCookTimeTotal(i));
-                }
-            }
-            if (state instanceof CommandBlock) {
-                CommandBlock newCommandBlock = (CommandBlock) newState;
-                CommandBlock oldCommandBlock = (CommandBlock) state;
-                newCommandBlock.setCommand(oldCommandBlock.getCommand());
-                newCommandBlock.setName(oldCommandBlock.getName());
-            }
-            try {
-                boolean doUpdate = true;
-                boolean fixBlock = false;
-                if (block.getType() == Material.MUSHROOM_STEM || block.getType() == Material.NOTE_BLOCK
-                        || block.getType() == Material.TRIPWIRE) {
-                    doUpdate = false;
-                    fixBlock = true;
-                }
-                newState.update(doUpdate, false);
-                if (fixBlock == true)
-                    block.setBlockData(state.getBlockData(), false);
-            } catch (NullPointerException ex) {
-                Bukkit.getServer().broadcastMessage("Failed to copy block state: " + block.getType().name());
-            }
-        }
-    }
-    public static BlockData rotateBlock(@NotNull MovecraftRotation rotation, @NotNull BlockData data) {
-        BlockData retdata = data;
-        int rotate = 0;
-        if (rotation == MovecraftRotation.CLOCKWISE) {
-            rotate = 1;
-        }
-        if (rotation == MovecraftRotation.ANTICLOCKWISE) {
-            rotate = -1;
-        }
-        for (int i = 0; i < rotate; i++) {
-            if (data instanceof RedstoneWire) {
-                RedstoneWire wire = (RedstoneWire) data;
-                RedstoneWire.Connection n = wire.getFace(BlockFace.NORTH);
-                RedstoneWire.Connection e = wire.getFace(BlockFace.EAST);
-                RedstoneWire.Connection s = wire.getFace(BlockFace.SOUTH);
-                RedstoneWire.Connection w = wire.getFace(BlockFace.WEST);
-                wire.setFace(BlockFace.NORTH, w);
-                wire.setFace(BlockFace.EAST, n);
-                wire.setFace(BlockFace.SOUTH, e);
-                wire.setFace(BlockFace.WEST, s);
-                retdata = ((BlockData)wire);
-
-            }
-            if (data instanceof Directional) {
-                Directional d = (Directional) data;
-                switch (d.getFacing()) {
-                    case NORTH:
-                        d.setFacing(BlockFace.EAST);
-                        break;
-                    case EAST:
-                        d.setFacing(BlockFace.SOUTH);
-                        break;
-                    case SOUTH:
-                        d.setFacing(BlockFace.WEST);
-                        break;
-                    case WEST:
-                        d.setFacing(BlockFace.NORTH);
-                        break;
-                }
-                retdata = ((BlockData)d);
-            }
-            if (data instanceof MultipleFacing) {
-                MultipleFacing m = (MultipleFacing) data;
-                boolean n = m.hasFace(BlockFace.NORTH);
-                boolean e = m.hasFace(BlockFace.EAST);
-                boolean s = m.hasFace(BlockFace.SOUTH);
-                boolean w = m.hasFace(BlockFace.WEST);
-                m.setFace(BlockFace.NORTH, w);
-                m.setFace(BlockFace.EAST, n);
-                m.setFace(BlockFace.SOUTH, e);
-                m.setFace(BlockFace.WEST, s);
-                retdata = ((BlockData)m);
-            }
-            if (data instanceof Orientable) {
-                Orientable o = (Orientable) data;
-                switch (o.getAxis()) {
-                    case X:
-                        o.setAxis(Axis.Z);
-                        break;
-                    case Z:
-                        o.setAxis(Axis.X);
-                        break;
-                }
-                retdata = ((BlockData)o);
-            }
-            if (data instanceof Rail) {
-                Rail r = (Rail) data;
-                switch (r.getShape()) {
-                    case ASCENDING_EAST:
-                        r.setShape(Rail.Shape.ASCENDING_SOUTH);
-                        break;
-                    case ASCENDING_NORTH:
-                        r.setShape(Rail.Shape.ASCENDING_EAST);
-                        break;
-                    case ASCENDING_SOUTH:
-                        r.setShape(Rail.Shape.ASCENDING_WEST);
-                        break;
-                    case ASCENDING_WEST:
-                        r.setShape(Rail.Shape.ASCENDING_NORTH);
-                        break;
-                    case EAST_WEST:
-                        r.setShape(Rail.Shape.NORTH_SOUTH);
-                        break;
-                    case NORTH_EAST:
-                        r.setShape(Rail.Shape.SOUTH_EAST);
-                        break;
-                    case NORTH_SOUTH:
-                        r.setShape(Rail.Shape.EAST_WEST);
-                        break;
-                    case NORTH_WEST:
-                        r.setShape(Rail.Shape.NORTH_EAST);
-                        break;
-                    case SOUTH_EAST:
-                        r.setShape(Rail.Shape.SOUTH_WEST);
-                        break;
-                    case SOUTH_WEST:
-                        r.setShape(Rail.Shape.NORTH_WEST);
-                        break;
-                }
-                retdata = ((BlockData)r);
-            }
-            if (data instanceof Rotatable) {
-                Rotatable r = (Rotatable) data;
-                switch (r.getRotation()) {
-                    case NORTH:
-                        r.setRotation(BlockFace.EAST);
-                        break;
-                    case EAST:
-                        r.setRotation(BlockFace.SOUTH);
-                        break;
-                    case SOUTH:
-                        r.setRotation(BlockFace.WEST);
-                        break;
-                    case WEST:
-                        r.setRotation(BlockFace.NORTH);
-                        break;
-                    case EAST_NORTH_EAST:
-                        r.setRotation(BlockFace.SOUTH_SOUTH_EAST);
-                        break;
-                    case EAST_SOUTH_EAST:
-                        r.setRotation(BlockFace.SOUTH_SOUTH_WEST);
-                        break;
-                    case NORTH_EAST:
-                        r.setRotation(BlockFace.SOUTH_EAST);
-                        break;
-                    case NORTH_NORTH_EAST:
-                        r.setRotation(BlockFace.EAST_SOUTH_EAST);
-                        break;
-                    case NORTH_NORTH_WEST:
-                        r.setRotation(BlockFace.EAST_NORTH_EAST);
-                        break;
-                    case NORTH_WEST:
-                        r.setRotation(BlockFace.NORTH_EAST);
-                        break;
-                    case SOUTH_EAST:
-                        r.setRotation(BlockFace.SOUTH_WEST);
-                        break;
-                    case SOUTH_SOUTH_EAST:
-                        r.setRotation(BlockFace.WEST_SOUTH_WEST);
-                        break;
-                    case SOUTH_SOUTH_WEST:
-                        r.setRotation(BlockFace.WEST_NORTH_WEST);
-                        break;
-                    case SOUTH_WEST:
-                        r.setRotation(BlockFace.NORTH_WEST);
-                        break;
-                    case WEST_NORTH_WEST:
-                        r.setRotation(BlockFace.NORTH_NORTH_EAST);
-                        break;
-                    case WEST_SOUTH_WEST:
-                        r.setRotation(BlockFace.NORTH_NORTH_WEST);
-                        break;
-                }
-                retdata = ((BlockData)r);
-            }
-        }
-        return retdata;
-    }
 
     @NotNull
     private Set<CraftType> loadCraftTypes() {
@@ -895,50 +541,9 @@ public class CraftManager implements Iterable<Craft>{
         }
     }
 
-    public HitBox getHull(Craft craft){
-        final SetHitBox hull = new SetHitBox();
-        hull.addAll(hullSearch(getExterior(craft), craft));
-        return hull;
-    }
-
-    public SetHitBox getExterior(Craft craft){
-        final int minX = craft.getHitBox().getMinX();
-        final int maxX = craft.getHitBox().getMaxX();
-        final int minY = craft.getHitBox().getMinY();
-        final int maxY = craft.getHitBox().getMaxY();
-        final int minZ = craft.getHitBox().getMinZ();
-        final int maxZ = craft.getHitBox().getMaxZ();
-        final HitBox[] surfaces = {
-                new SolidHitBox(new MovecraftLocation(minX, minY, minZ), new MovecraftLocation(minX, maxY, maxZ)),
-                new SolidHitBox(new MovecraftLocation(minX, minY, minZ), new MovecraftLocation(maxX, maxY, minZ)),
-                new SolidHitBox(new MovecraftLocation(maxX, minY, maxZ), new MovecraftLocation(minX, maxY, maxZ)),
-                new SolidHitBox(new MovecraftLocation(maxX, minY, maxZ), new MovecraftLocation(maxX, maxY, minZ)),
-                new SolidHitBox(new MovecraftLocation(minX, minY, minZ), new MovecraftLocation(maxX, minY, maxZ))};
-        final SetHitBox validExterior = new SetHitBox();
-        for (HitBox surface : surfaces) {
-            for(var location : surface){
-                if(!craft.getHitBox().contains(location)){
-                    validExterior.add(location);
-                }
-            }
-        }
-        return validExterior;
-    }
-    public HitBox detectRawInterior(Craft craft) {
-        return detectInterior(craft,false);
-    }
-    public HitBox detectValidInterior(Craft craft) {
-        return detectInterior(craft,true);
-    }
-    public HitBox detectInterior(Craft craft, boolean validate) {
-        final HitBox hitBox = new BitmapHitBox(craft.getHitBox());
-        final HitBox boundingHitBox = new BitmapHitBox(craft.getHitBox().boundingHitBox());
-        final HitBox invertBox = new SetHitBox(Sets.difference(boundingHitBox.asSet(), hitBox.asSet()));
-        HitBox validExterior = detectInvertedBox(craft);
-        SetHitBox confirmedExtBox = new SetHitBox(verifyExterior(invertBox.asSet(),validExterior));
-        HitBox box = new BitmapHitBox(boundingHitBox.difference(confirmedExtBox));
-        final SetHitBox interior = new SetHitBox(box.difference(hitBox));
-        return interior;
+    public void add(@NotNull Craft c) {
+        //Redirected to old Method-Name
+        addCraft(c);
     }
     
     public SetHitBox detectCraftExterior(Craft craft) {
@@ -949,7 +554,7 @@ public class CraftManager implements Iterable<Craft>{
                 final HitBox boundingHitBox = new BitmapHitBox(craft.getHitBox().boundingHitBox());
                 final HitBox invertBox = new SetHitBox(Sets.difference(boundingHitBox.asSet(), hitBox.asSet()));
                 HitBox validExterior = detectInvertedBox(craft);
-                confirmedExtBox = new SetHitBox(verifyExterior(invertBox.asSet(),validExterior));
+                confirmedExtBox = new SetHitBox(verifyDetectedExterior(invertBox.asSet(),validExterior));
                 ((BaseCraft)craft).setTrackedMovecraftLocs("valid_exterior",confirmedExtBox.asSet());
             } else {
                 confirmedExtBox = new SetHitBox(((BaseCraft)craft).getTrackedMovecraftLocs("valid_exterior"));
@@ -960,69 +565,94 @@ public class CraftManager implements Iterable<Craft>{
         final HitBox boundingHitBox = new BitmapHitBox(craft.getHitBox().boundingHitBox());
         final HitBox invertBox = new SetHitBox(Sets.difference(boundingHitBox.asSet(), hitBox.asSet()));
         HitBox validExterior = detectInvertedBox(craft);
-        confirmedExtBox = new SetHitBox(verifyExterior(invertBox.asSet(),validExterior));
+        confirmedExtBox = new SetHitBox(verifyDetectedExterior(invertBox.asSet(),validExterior));
         return confirmedExtBox;
     }
     
     public SetHitBox detectCraftInterior(Craft craft) {
-        if (craft.getOrigBlockCount()>=256000)
-            return new SetHitBox(craft.getHitBox());
         final HitBox hitBox = new BitmapHitBox(craft.getHitBox());
         final HitBox boundingHitBox = new BitmapHitBox(craft.getHitBox().boundingHitBox());
         final HitBox invertBox = new SetHitBox(Sets.difference(boundingHitBox.asSet(), hitBox.asSet()));
         HitBox validExterior = detectInvertedBox(craft);
-        SetHitBox confirmedExtBox = new SetHitBox(verifyExterior(invertBox.asSet(),validExterior));
+        SetHitBox confirmedExtBox = new SetHitBox(verifyDetectedExterior(invertBox.asSet(),validExterior));
         HitBox box = new BitmapHitBox(boundingHitBox.difference(confirmedExtBox));
         final SetHitBox interior = new SetHitBox(box.difference(hitBox));
         return interior;
     }
-        /*final HitBox[] surfaces = {
-                new SolidHitBox(new MovecraftLocation(minX, minY, minZ), new MovecraftLocation(maxX, minY, maxZ)), //bottom
-                new SolidHitBox(new MovecraftLocation(minX, minY, minZ), new MovecraftLocation(minX, maxY, maxZ)), //east
-                new SolidHitBox(new MovecraftLocation(maxX, minY, minZ), new MovecraftLocation(maxX, maxY, maxZ)), //west
-                new SolidHitBox(new MovecraftLocation(minX, minY, maxZ), new MovecraftLocation(maxX, maxY, maxZ)), //south
-                new SolidHitBox(new MovecraftLocation(minX, minY, minZ), new MovecraftLocation(maxX, maxY, minZ)), //north
-        };
-        final MutableHitBox exterior = new SetHitBox();
-        for (var surface : surfaces) {
-            exterior.addAll(new BitmapHitBox(surface).difference(hitBox));
-        }
+    public HitBox detectInterior(Craft craft) {
+        return detectCraftInterior(craft);
+    }
 
-        for (MovecraftLocation location : validExterior) {
-            if (craft.getHitBox().contains(location) || exterior.contains(location)) {
-                continue;
+    public BitmapHitBox detectExterior(Craft craft) {
+        BitmapHitBox full = new BitmapHitBox(craft.getHitBox());
+        World world = craft.getWorld();
+        int minX = full.getMinX();
+        int maxX = full.getMaxX();
+        int minY = full.getMinY();
+        int maxY = full.getMaxY();
+        int minZ = full.getMinZ();
+        int maxZ = full.getMaxZ();
+        HitBox hitBox = new SolidHitBox(new MovecraftLocation(minX, minY, minZ), new MovecraftLocation(maxX, maxY, maxZ));
+        BitmapHitBox internalHitbox = new BitmapHitBox(hitBox);
+        for (MovecraftLocation loc : internalHitbox) {
+            if (loc.toBukkit(world).getBlock().getType().isAir()) {
+                internalHitbox.remove(loc);
             }
-            //use a modified BFS for multiple origin elements
-            SetHitBox visited = new SetHitBox();
-            Queue<MovecraftLocation> queue = new LinkedList<>();
-            queue.add(location);
-            while (!queue.isEmpty()) {
-                MovecraftLocation node = queue.poll();
-                //If the node is already a valid member of the exterior of the HitBox, continued search is unitary.
-                for (MovecraftLocation neighbor : CollectionUtils.neighbors(invertedHitBox, node)) {
-                    if (visited.contains(neighbor)) {
-                        continue;
-                    }
-                    visited.add(neighbor);
-                    queue.add(neighbor);
+        }
+        return internalHitbox;
+    }
+
+    public Set<MovecraftLocation> verifyDetectedExterior(Set<MovecraftLocation> invertedHitBox, HitBox validExterior) {
+        var shifts = new MovecraftLocation[]{new MovecraftLocation(0,-1,0),
+                new MovecraftLocation(1,0,0),
+                new MovecraftLocation(-1,0,0),
+                new MovecraftLocation(0,0,1),
+                new MovecraftLocation(0,0,-1)};
+        Set<MovecraftLocation> visited = new LinkedHashSet<>(validExterior.asSet());
+        Queue<MovecraftLocation> queue = new ArrayDeque<>();
+        for(var node : validExterior){
+            //If the node is already a valid member of the exterior of the HitBox, continued search is unitary.
+            for(var shift : shifts){
+                var shifted = node.add(shift);
+                if(invertedHitBox.contains(shifted) && visited.add(shifted)){
+                    queue.add(shifted);
                 }
             }
-            exterior.addAll(visited);
         }
-        final SetHitBox interior = new SetHitBox(invertedHitBox.difference(exterior));
-        for (MovecraftLocation loc : interior) {
-            if ((craft.getType().getAllowedBlocks().contains(loc.toBukkit(craft.getWorld()).getBlock().getType()))) {
-                if (craft.getHitBox().contains(loc))
-                    continue;
-                if (loc.toBukkit(craft.getWorld()).getBlock().getType().isAir())
-                    continue;
-                interior.remove(loc);
+        while (!queue.isEmpty()) {
+            var node = queue.poll();
+            //If the node is already a valid member of the exterior of the HitBox, continued search is unitary.
+            for(var shift : shifts){
+                var shifted = node.add(shift);
+                if(invertedHitBox.contains(shifted) && visited.add(shifted)){
+                    queue.add(shifted);
+                }
             }
-            if (loc.toBukkit(craft.getWorld()).getBlock().getType().isAir())
-                continue;
-            if (loc.toBukkit(craft.getWorld()).getBlock().getType().isSolid())
-                interior.remove(loc);
-        }*/
+        }
+        return visited;
+    }
+    public BitmapHitBox detectValidExterior(Craft craft) {
+        var invertedHitBox = Sets.difference(craft.getHitBox().boundingHitBox().asSet(), craft.getHitBox().asSet());
+        int minX = craft.getHitBox().getMinX();
+        int maxX = craft.getHitBox().getMaxX();
+        int minY = craft.getHitBox().getMinY();
+        int maxY = craft.getHitBox().getMaxY();
+        int minZ = craft.getHitBox().getMinZ();
+        int maxZ = craft.getHitBox().getMaxZ();
+        HitBox[] surfaces = {
+                new SolidHitBox(new MovecraftLocation(minX, minY, minZ), new MovecraftLocation(minX, maxY, maxZ)),
+                new SolidHitBox(new MovecraftLocation(minX, minY, minZ), new MovecraftLocation(maxX, maxY, minZ)),
+                new SolidHitBox(new MovecraftLocation(maxX, minY, maxZ), new MovecraftLocation(minX, maxY, maxZ)),
+                new SolidHitBox(new MovecraftLocation(maxX, minY, maxZ), new MovecraftLocation(maxX, maxY, minZ)),
+                new SolidHitBox(new MovecraftLocation(minX, minY, minZ), new MovecraftLocation(maxX, minY, maxZ))};
+        SetHitBox validExterior = new SetHitBox();
+        for (HitBox hitBox : surfaces) {
+            validExterior.addAll(Sets.difference(hitBox.asSet(),craft.getHitBox().asSet()));
+        }
+        BitmapHitBox validExteriorBitMap = new BitmapHitBox(validExterior);
+        return validExteriorBitMap;
+    }
+
     public BitmapHitBox detectInvertedBox(Craft craft) {
       var invertedHitBox = Sets.difference(craft.getHitBox().boundingHitBox().asSet(), craft.getHitBox().asSet());
       int minX = craft.getHitBox().getMinX();
@@ -1043,28 +673,6 @@ public class CraftManager implements Iterable<Craft>{
       }
       BitmapHitBox validExteriorBitMap = new BitmapHitBox(validExterior);
       return validExteriorBitMap;
-    }
-
-
-    @NotNull
-    public List<MovecraftLocation> hullSearch(SetHitBox validExterior, Craft craft) {
-        MovecraftLocation[] shifts = new MovecraftLocation[]{new MovecraftLocation(0, -1, 0), new MovecraftLocation(1, 0, 0), new MovecraftLocation(-1, 0, 0), new MovecraftLocation(0, 0, 1), new MovecraftLocation(0, 0, -1)};
-        LinkedList<MovecraftLocation> hull = new LinkedList<MovecraftLocation>();
-        HitBox craftBox = craft.getHitBox();
-        LinkedList<MovecraftLocation> queue = Lists.newLinkedList(validExterior);
-        SetHitBox visited = new SetHitBox(validExterior);
-        while (!queue.isEmpty()) {
-            MovecraftLocation top = (MovecraftLocation)queue.poll();
-            if (craftBox.contains(top)) {
-                hull.add(top);
-            }
-            for (MovecraftLocation shift : shifts) {
-                MovecraftLocation shifted = top.add(shift);
-                if (!craftBox.inBounds(shifted) || !visited.add(shifted)) continue;
-                queue.add(shifted);
-            }
-        }
-        return hull;
     }
 
     public void release(@NotNull Craft craft, @NotNull CraftReleaseEvent.Reason reason, boolean force) {
@@ -1194,15 +802,8 @@ public class CraftManager implements Iterable<Craft>{
             int origin_lift = 0;
             //craft.midPoint = craft.getHitBox().getMidPoint();
             for (RequiredBlockEntry entry : craft.getType().getRequiredBlockProperty(CraftType.FLY_BLOCKS)) {
-                for (Material mat : entry.getMaterials()) {
-                    if (mat == Material.NOTE_BLOCK) {
-                        origin_lift += (((craft).getBlockData(mat.createBlockData("[instrument=pling,note=2,powered=false]"))).size());
-                        origin_lift += (((craft).getBlockData(mat.createBlockData("[instrument=pling,note=7,powered=false]"))).size());
-                        origin_lift += (((craft).getBlockData(mat.createBlockData("[instrument=pling,note=8,powered=false]"))).size());
-                        origin_lift += (((craft).getBlockData(mat.createBlockData("[instrument=pling,note=9,powered=false]"))).size());
-                    } else {
-                        origin_lift += (((craft).getBlockType(mat)).size());
-                    }
+                for (Material mats : entry.getMaterials()) {
+                    origin_lift += (((craft).getBlockType(mats)).size());
                 }
             }
             craft.setDataTag("origin_lift",(origin_lift));
@@ -1216,7 +817,7 @@ public class CraftManager implements Iterable<Craft>{
         }
     }
 
-    public void detectIgnore(@NotNull List<BlockData> mat, @NotNull MovecraftLocation startPoint,
+    public void detectIgnoreBlockData(@NotNull List<BlockData> mat, @NotNull MovecraftLocation startPoint,
                         @NotNull CraftType type, @NotNull CraftSupplier supplier,
                         @NotNull World world, @Nullable Player player,
                         @NotNull Audience audience,
@@ -1234,14 +835,7 @@ public class CraftManager implements Iterable<Craft>{
             //craft.midPoint = craft.getHitBox().getMidPoint();
             for (RequiredBlockEntry entry : craft.getType().getRequiredBlockProperty(CraftType.FLY_BLOCKS)) {
                 for (Material mats : entry.getMaterials()) {
-                    if (mats == Material.NOTE_BLOCK) {
-                        origin_lift += (((craft).getBlockData(mats.createBlockData("[instrument=pling,note=2,powered=false]"))).size());
-                        origin_lift += (((craft).getBlockData(mats.createBlockData("[instrument=pling,note=7,powered=false]"))).size());
-                        origin_lift += (((craft).getBlockData(mats.createBlockData("[instrument=pling,note=8,powered=false]"))).size());
-                        origin_lift += (((craft).getBlockData(mats.createBlockData("[instrument=pling,note=9,powered=false]"))).size());
-                    } else {
-                        origin_lift += (((craft).getBlockType(mats)).size());
-                    }
+                    origin_lift += (((craft).getBlockType(mats)).size());
                 }
             }
             craft.setDataTag("origin_lift",(origin_lift));
@@ -1290,82 +884,13 @@ public class CraftManager implements Iterable<Craft>{
             forceRemoveCraft(craft);
         }
     }
-    public BitmapHitBox detectExterior(Craft craft) {
-        BitmapHitBox full = new BitmapHitBox(craft.getHitBox());
-        World world = craft.getWorld();
-        int minX = full.getMinX();
-        int maxX = full.getMaxX();
-        int minY = full.getMinY();
-        int maxY = full.getMaxY();
-        int minZ = full.getMinZ();
-        int maxZ = full.getMaxZ();
-        HitBox hitBox = new SolidHitBox(new MovecraftLocation(minX, minY, minZ), new MovecraftLocation(maxX, maxY, maxZ));
-        BitmapHitBox internalHitbox = new BitmapHitBox(hitBox);
-        for (MovecraftLocation loc : internalHitbox) {
-            if (loc.toBukkit(world).getBlock().getType().isAir()) {
-                internalHitbox.remove(loc);
-            }
-        }
-        return internalHitbox;
-    }
-
-    public Set<MovecraftLocation> verifyExterior(Set<MovecraftLocation> invertedHitBox, HitBox validExterior) {
-        var shifts = new MovecraftLocation[]{new MovecraftLocation(0,-1,0),
-                new MovecraftLocation(1,0,0),
-                new MovecraftLocation(-1,0,0),
-                new MovecraftLocation(0,0,1),
-                new MovecraftLocation(0,0,-1)};
-        Set<MovecraftLocation> visited = new LinkedHashSet<>(validExterior.asSet());
-        Queue<MovecraftLocation> queue = new ArrayDeque<>();
-        for(var node : validExterior){
-            //If the node is already a valid member of the exterior of the HitBox, continued search is unitary.
-            for(var shift : shifts){
-                var shifted = node.add(shift);
-                if(invertedHitBox.contains(shifted) && visited.add(shifted)){
-                    queue.add(shifted);
-                }
-            }
-        }
-        while (!queue.isEmpty()) {
-            var node = queue.poll();
-            //If the node is already a valid member of the exterior of the HitBox, continued search is unitary.
-            for(var shift : shifts){
-                var shifted = node.add(shift);
-                if(invertedHitBox.contains(shifted) && visited.add(shifted)){
-                    queue.add(shifted);
-                }
-            }
-        }
-        return visited;
-    }
-    public BitmapHitBox detectValidExterior(Craft craft) {
-      var invertedHitBox = Sets.difference(craft.getHitBox().boundingHitBox().asSet(), craft.getHitBox().asSet());
-      int minX = craft.getHitBox().getMinX();
-      int maxX = craft.getHitBox().getMaxX();
-      int minY = craft.getHitBox().getMinY();
-      int maxY = craft.getHitBox().getMaxY();
-      int minZ = craft.getHitBox().getMinZ();
-      int maxZ = craft.getHitBox().getMaxZ();
-      HitBox[] surfaces = {
-              new SolidHitBox(new MovecraftLocation(minX, minY, minZ), new MovecraftLocation(minX, maxY, maxZ)),
-              new SolidHitBox(new MovecraftLocation(minX, minY, minZ), new MovecraftLocation(maxX, maxY, minZ)),
-              new SolidHitBox(new MovecraftLocation(maxX, minY, maxZ), new MovecraftLocation(minX, maxY, maxZ)),
-              new SolidHitBox(new MovecraftLocation(maxX, minY, maxZ), new MovecraftLocation(maxX, maxY, minZ)),
-              new SolidHitBox(new MovecraftLocation(minX, minY, minZ), new MovecraftLocation(maxX, minY, maxZ))};
-      SetHitBox validExterior = new SetHitBox();
-      for (HitBox hitBox : surfaces) {
-          validExterior.addAll(Sets.difference(hitBox.asSet(),craft.getHitBox().asSet()));
-      }
-      BitmapHitBox validExteriorBitMap = new BitmapHitBox(validExterior);
-      return validExteriorBitMap;
-    }
 
 
 
-    public Craft forceCraftPilotIgnoreBlockData(@NotNull CraftType craftType, Block b, Player player, List<BlockData> matIgnored) {
+    public Craft forcePilotIgnoreBlockData(@NotNull CraftType craftType, Block b, Player player, List<BlockData> matIgnored) {
         MovecraftLocation startPoint = new MovecraftLocation(b.getX(), b.getY(), b.getZ());
         World world = (World)b.getWorld();
-        this.detectIgnore(
+        this.detectIgnoreBlockData(
                 matIgnored,
                 startPoint,
                 craftType, (type, w, p, parents) -> {
@@ -1392,7 +917,7 @@ public class CraftManager implements Iterable<Craft>{
     }
 
 
-    public Craft forceCraftSplitPilot(@NotNull CraftType craftType, Block b, Player player) {
+    public Craft forcePilotAndSplit(@NotNull CraftType craftType, Block b, Player player) {
         MovecraftLocation startPoint = new MovecraftLocation(b.getX(), b.getY(), b.getZ());
         World world = (World)b.getWorld();
         Craft originCraft = (this.getCraftFromBlock(b));
@@ -1412,7 +937,7 @@ public class CraftManager implements Iterable<Craft>{
     }
 
 
-    public Craft forceCraftPilot(@NotNull CraftType craftType, @NotNull Block b, @NotNull Player player) {
+    public Craft forcePilot(@NotNull CraftType craftType, @NotNull Block b, @NotNull Player player) {
         MovecraftLocation startPoint = new MovecraftLocation(b.getX(), b.getY(), b.getZ());
         World world = (World)b.getWorld();
         this.detect(
@@ -1506,21 +1031,7 @@ public class CraftManager implements Iterable<Craft>{
       return crafts;
     }
 
-
-    public Collection<Location> getCraftBlockDataLocations(Craft c, BlockData bkd){
-       ArrayList<Location> locs = new ArrayList<>();
-       if (c instanceof Craft){
-           for (MovecraftLocation l : ((Craft)c).getHitBox()){
-              if (l.toBukkit(((Craft)c).getWorld()).getBlock().getBlockData() == bkd) {
-                 locs.add(l.toBukkit(((Craft)c).getWorld()));
-
-              }
-           }
-       }
-       return locs;
-    }
-
-    public static <K, V> Map<K, V> reverse(Map<K, V> map) {
+    public static <K, V> Map<K, V> reverseMap(Map<K, V> map) {
         LinkedHashMap<K, V> reversed = new LinkedHashMap<>();
         List<K> keys = new ArrayList<>(map.keySet());
         Collections.reverse(keys);
@@ -1528,13 +1039,6 @@ public class CraftManager implements Iterable<Craft>{
         return reversed;
     }
 
-    public Collection<Block> getBlockTypeFromCraft(Craft c, Material m){
-        return (((BaseCraft)c).getBlockType(m));
-    }
-
-    public Collection<Block> getBlockNameFromCraft(Craft c, String s){
-       return ((BaseCraft)c).getBlockName(s);
-    }
     public static boolean containsIgnoreCase(String src, String what) {
         final int length = what.length();
         if (length == 0)
@@ -1554,18 +1058,6 @@ public class CraftManager implements Iterable<Craft>{
         }
 
         return false;
-    }
-    public Set<Block> getAllCraftSigns(Craft c){
-       Set<Block> blocks = new HashSet<>();
-       if (c instanceof Craft){
-         for (MovecraftLocation l : ((Craft)c).getHitBox()){
-            if (l.toBukkit(((Craft)c).getWorld()).getBlock().getType().toString().contains("SIGN")) {
-              blocks.add(l.toBukkit(((Craft)c).getWorld()).getBlock());
-
-            }
-         }
-       }
-       return blocks;
     }
 
     public Craft getCraftFromBlock(Block b){
@@ -1701,12 +1193,14 @@ public class CraftManager implements Iterable<Craft>{
         }
         return crafts;
     }
+    @NotNull
     public Set<Craft> getCrafts() {
         return Collections.unmodifiableSet(craftList);
     }
+
     @NotNull
     public Set<Craft> getCraftList() {
-        return Collections.unmodifiableSet(craftList);
+        return getCrafts();
     }
 
     @Nullable

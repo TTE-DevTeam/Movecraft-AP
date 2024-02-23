@@ -67,7 +67,7 @@ public class IWorldHandler extends WorldHandler {
         ROTATION[MovecraftRotation.CLOCKWISE.ordinal()] = Rotation.CLOCKWISE_90;
         ROTATION[MovecraftRotation.ANTICLOCKWISE.ordinal()] = Rotation.COUNTERCLOCKWISE_90;
     }
-    private static final BlockState air = Blocks.AIR.defaultBlockState();
+    private static final BlockState NMS_AIR = Blocks.AIR.defaultBlockState();
     private final NextTickProvider tickProvider = new NextTickProvider();
     private static final Plugin PLUGIN = Bukkit.getPluginManager().getPlugin("Movecraft");
     private static final RandomSource RANDOM = new RandomSourceWrapper(new java.util.Random());
@@ -110,19 +110,14 @@ public class IWorldHandler extends WorldHandler {
         final HashMap<BlockPos, BlockState> blockData = new HashMap<>();
         final HashMap<BlockPos, BlockState> redstoneComps = new HashMap<>();
         final List<TileHolder> tiles = new ArrayList<>();
-        //  HashMap<Location, BlockData> sendAir = new HashMap<>();
         for (MovecraftLocation newLocation : craft.getHitBox()) {
             rotatedPositions.put(locationToPosition(MathUtils.rotateVec(counterRotation, newLocation.subtract(originPoint)).add(originPoint)), locationToPosition(newLocation));
-            //Location pos = new Location(craft.getWorld(),newLocation.getX(),newLocation.getY(),newLocation.getZ());
-            //sendBlockFast(nativeWorld, locationToPosition(MathUtils.rotateVec(counterRotation, newLocation.subtract(originPoint)).add(originPoint)), air);
-            //sendAir.put(pos,air);
         }
             //*******************************************
             //*         Step two: Get the tiles         *
             //*******************************************
         //get the tiles
         for (BlockPos position : rotatedPositions.keySet()) {
-            //BlockEntity tile = nativeWorld.removeBlockEntity(position);
             BlockEntity tile = removeBlockEntity(nativeWorld, position);
             
             BlockPos pos = position;
@@ -143,7 +138,6 @@ public class IWorldHandler extends WorldHandler {
             //TODO: go by chunks
             //TODO: Don't move unnecessary blocks
             //get the blocks and rotate them
-            //MovecraftLocation.sendBlockUpdated(craft,sendAir);
             //create the new block
         for (Map.Entry<BlockPos, BlockState> entry : blockData.entrySet()) {
             setBlockFast(nativeWorld, rotatedPositions.get(entry.getKey()), entry.getValue());
@@ -154,28 +148,16 @@ public class IWorldHandler extends WorldHandler {
             //*    Step four: replace all the tiles     *
             //*******************************************
             //TODO: go by chunks
-                for (TileHolder tileHolder : tiles) {
-                    moveBlockEntity(nativeWorld, rotatedPositions.get(tileHolder.getTilePosition()), tileHolder.getTile());
-                    //if (tileHolder.getNextTick() == null)
-                    //    continue;
-                    //if (tileHolder.getTile() instanceof BeaconBlockEntity)
-                    //    continue;
-                    //final long currentTime = nativeWorld.K.getGameTime();
-                    //nativeWorld.getBlockTicks().schedule(new ScheduledTick<>((Block) tileHolder.getNextTick().type(), rotatedPositions.get(tileHolder.getNextTick().pos()), tileHolder.getNextTick().triggerTick() - currentTime, tileHolder.getNextTick().priority(), tileHolder.getNextTick().subTickOrder()));
-                }
-            //MovecraftLocation.sendBlockUpdated(craft,sendAir);
+        for (TileHolder tileHolder : tiles) {
+            moveBlockEntity(nativeWorld, rotatedPositions.get(tileHolder.getTilePosition()), tileHolder.getTile());
+        }
         //*******************************************
         //*   Step five: Destroy the leftovers      *
         //*******************************************
         //TODO: add support for pass-through
         Collection<BlockPos> deletePositions = CollectionUtils.oldFilter(rotatedPositions.keySet(), rotatedPositions.values());
         for (BlockPos position : deletePositions) {
-            //sendBlockFast(nativeWorld, position, air);
-            setBlockFast(nativeWorld, position, air);
-            //else
-            //  setBlockFast(nativeWorld, position, air);
-            //Location bloc = new Location(craft.getWorld(),pos.getX(),pos.getY(),pos.getZ());
-            //sendAir.put(bloc,air);
+            setBlockFast(nativeWorld, position, NMS_AIR);
         }
         if (craft.getAudience() == null) return;
         if (craft.getAudience().equals(audience.console())) return;
@@ -211,44 +193,22 @@ public class IWorldHandler extends WorldHandler {
         //TODO: go by chunks
         //TODO: Don't move unnecessary blocks
         //get the blocks and translate the positions
-        //HashMap<Location, BlockData> sendAir = new HashMap<>(positions.size())
         for (BlockPos position : positions) {
-            BlockState data;
-            try {
-                data = getBlockFast(oldNativeWorld,position);
-            } catch (Exception exc) {
-                data = oldNativeWorld.getBlockState(position);
-            } if (data == null) {
-                data = oldNativeWorld.getBlockState(position);
-            }
+            BlockState data = oldNativeWorld.getBlockState(position);
             blockData.add(data);
             if (isRedstoneComponent(data.getBlock())) redstoneComps.add(position.offset(translateVector));
             newPositions.add(position.offset(translateVector));
             BlockEntity tile = removeBlockEntity(oldNativeWorld, position);
             if (tile == null) continue;
             //get the nextTick to move with the tile
-            //nativeWorld.capturedTileEntities.remove(position);
-            //nativeWorld.getChunkAtWorldCoords(position).getTileEntities().remove(position);;
             tiles.add(new TileHolder(tile, tickProvider.getNextTick(oldNativeWorld, position), position));
-            //Location bloc = new Location(craft.getWorld(),pos.getX(),pos.getY(),pos.getZ());
         }
         //create the new block
-        //HashMap<Location, BlockData> sendBlocks = new HashMap<>(newPositions.size());
-        //final HashMap<BlockPos, BlockState> fireBlocks = new HashMap<>();
         for(int i = 0, positionSize = newPositions.size(); i<positionSize; i++) {
             BlockPos pos = newPositions.get(i);
             BlockState state = blockData.get(i);
             // Add to fire processing list
-            if (craft.getHitBox().size()>=25600) {
-                setBlockFast(nativeWorld, pos, state);
-            } else {
-                setBlockFast(nativeWorld, pos, state);
-            }
-            //sendBlockFast(nativeWorld, pos, state);
-            //else
-            //  setBlockFast(nativeWorld, pos, state);
-            //Location bloc = new Location(craft.getWorld(),pos.getX(),pos.getY(),pos.getZ());
-            //sendBlocks.put(new Location(craft.getWorld(),pos.getX(),pos.getY(),pos.getZ()),bloc.getBlock().getBlockData());
+            setBlockFast(nativeWorld, pos, state);
         }
         //*******************************************
         //*    Step four: replace all the tiles     *
@@ -257,21 +217,6 @@ public class IWorldHandler extends WorldHandler {
         for (TileHolder tileHolder : tiles) {
             setBlockFast(nativeWorld, tileHolder.getTilePosition().offset(translateVector), tileHolder.getTile().getBlockState());
             moveBlockEntity(nativeWorld, tileHolder.getTilePosition().offset(translateVector), tileHolder.getTile());
-            //if (tileHolder.getNextTick() == null)
-            //    continue;
-            //if (tileHolder.getTile() instanceof BeaconBlockEntity)
-            //    continue;
-            //final long currentTime = nativeWorld.K.getGameTime();
-            //nativeWorld.getBlockTicks().schedule(new ScheduledTick<>((Block) tileHolder.getNextTick().type(), tileHolder.getTilePosition().offset(translateVector), tileHolder.getNextTick().triggerTick() - currentTime, tileHolder.getNextTick().priority(), tileHolder.getNextTick().subTickOrder()));
-            
-            /*
-            Original
-            moveBlockEntity(nativeWorld, tileHolder.getTilePosition().offset(translateVector), tileHolder.getTile());
-            if (tileHolder.getNextTick() == null)
-                continue;
-            final long currentTime = nativeWorld.getGameTime();
-            nativeWorld.getBlockTicks().schedule(new ScheduledTick<>((Block) tileHolder.getNextTick().type(), tileHolder.getTilePosition().offset(translateVector), tileHolder.getNextTick().triggerTick() - currentTime, tileHolder.getNextTick().priority(), tileHolder.getNextTick().subTickOrder()));
-            */
         }
         //MovecraftLocation.sendBlockUpdated(craft,sendBlocks);
         //*******************************************
@@ -281,14 +226,8 @@ public class IWorldHandler extends WorldHandler {
         if (oldNativeWorld == nativeWorld) deletePositions = CollectionUtils.filter(positions,newPositions);
         for (BlockPos position : deletePositions) {
             BlockPos pos = position;
-
-            //Location bloc = new Location(world,pos.getX(),pos.getY(),pos.getZ());
-            setBlockFast(oldNativeWorld, position, air);
-            //else
-            //  setBlockFast(oldNativeWorld, position, air);
-            //sendAir.put(bloc,air);
+            setBlockFast(oldNativeWorld, position, NMS_AIR);
         }
-        //MovecraftLocation.sendBlockUpdated(craft,sendAir);
 
         //*******************************************
         //*      Step six: Process redstone         *
@@ -324,7 +263,7 @@ public class IWorldHandler extends WorldHandler {
         LevelChunkSection section = chunk.getSections()[chunkSection];
         if (section == null) {
             // Put a GLASS block to initialize the section. It will be replaced next with the real block.
-            chunk.setBlockState(position, air, false);
+            chunk.setBlockState(position, NMS_AIR, false);
             section = chunk.getSections()[chunkSection];
         }
         section.setBlockState(position.getX() & 15, position.getY() & 15, position.getZ() & 15, data);
@@ -337,18 +276,12 @@ public class IWorldHandler extends WorldHandler {
         LevelChunk chunk = world.getChunkAt(position);
         int chunkSection = (position.getY() >> 4) - chunk.getMinSection();
         LevelChunkSection section = chunk.getSections()[chunkSection];
-        BlockState data = null;
         if (section == null) {
             // Put a GLASS block to initialize the section. It will be replaced next with the real block.
-            chunk.setBlockState(position, air, false);
+            chunk.setBlockState(position, NMS_AIR, false);
             section = chunk.getSections()[chunkSection];
         }
-        try {
-            PalettedContainer pcont = section.getStates();
-            data = (BlockState)pcont.get(position.getX() & 15, position.getY() & 15, position.getZ() & 15);
-        } catch (Exception e) {
-            data = section.getBlockState(position.getX() & 15, position.getY() & 15, position.getZ() & 15);
-        }
+        BlockState data = section.getBlockState(position.getX() & 15, position.getY() & 15, position.getZ() & 15);
         return data;
     }
 
@@ -362,12 +295,10 @@ public class IWorldHandler extends WorldHandler {
     private void processRedstone(Collection<BlockPos> redstone, Level world) {
         for (final BlockPos pos : redstone) {
             BlockState data = getBlockFast(world,pos);
-            if (isRedstoneComponent(data.getBlock())) {
-                world.updateNeighborsAt(pos, data.getBlock());
-                world.sendBlockUpdated(pos, data, data, 3);
-                if (isToggleableRedstoneComponent(data.getBlock())) {
-                    data.getBlock().tick(data,(ServerLevel)world,pos,RANDOM);
-                }
+            world.updateNeighborsAt(pos, data.getBlock());
+            world.sendBlockUpdated(pos, data, data, 3);
+            if (isToggleableRedstoneComponent(data.getBlock())) {
+                data.getBlock().tick(data,(ServerLevel)world,pos,RANDOM);
             }
         }
     }
@@ -396,15 +327,6 @@ public class IWorldHandler extends WorldHandler {
 
         AbstractContainerMenu menu = ((CraftInventoryView) inventoryView).getHandle();
         UnsafeUtils.trySetFieldOfType(ContainerLevelAccess.class, menu, access);
-    }
-
-    private void processFireSpread(final HashMap<BlockPos, BlockState> fireStates, ServerLevel world) {
-        for (var entry: fireStates.entrySet()) {
-            BlockState state = entry.getValue();
-            if (state.getBlock() instanceof FireBlock fireBlock) {
-                fireBlock.tick(state, world, entry.getKey(), world.random);
-            }
-        }
     }
 
     @Override
@@ -454,7 +376,7 @@ public class IWorldHandler extends WorldHandler {
             @Override
             public void run() {
               ServerLevel nativeWorld = ((CraftWorld) world).getHandle();
-              for (MovecraftLocation loc: hitBox) {
+              for (MovecraftLocation loc : hitBox) {
                   nativeWorld.getLightEngine().checkBlock(locationToPosition(loc));
               }
             }
@@ -474,15 +396,6 @@ public class IWorldHandler extends WorldHandler {
         }
     }
 
-    private final Field justTeleportedField = getField("justTeleported");
-    private final Field awaitingPositionFromClientField = getField("B");
-    private final Field lastPosXField = getField("lastPosX");
-    private final Field lastPosYField = getField("lastPosY");
-    private final Field lastPosZField = getField("lastPosZ");
-    private final Field awaitingTeleportField = getField("C");
-    private final Field awaitingTeleportTimeField = getField("D");
-    private final Field aboveGroundVehicleTickCountField = getField("H");
-
     private boolean isRedstoneComponent(Block block) {
       return block instanceof RedStoneWireBlock ||
               block instanceof DiodeBlock ||
@@ -500,7 +413,9 @@ public class IWorldHandler extends WorldHandler {
               block instanceof ComparatorBlock ||
               block instanceof SculkSensorBlock ||
               block instanceof PistonBaseBlock ||
-              block instanceof MovingPistonBlock;
+              block instanceof MovingPistonBlock ||
+              block instanceof CrafterBlock ||
+              block instanceof CopperBulbBlock;
     }
     private boolean isToggleableRedstoneComponent(Block block) {
       return block instanceof PressurePlateBlock ||
@@ -515,7 +430,7 @@ public class IWorldHandler extends WorldHandler {
     private void moveBlockEntity(@NotNull Level nativeWorld, @NotNull BlockPos newPosition, @NotNull BlockEntity tile) {
         LevelChunk chunk = nativeWorld.getChunkAt(newPosition);
         try {
-            var positionField = BlockEntity.class.getDeclaredField("p"); // p is obfuscated worldPosition
+            var positionField = BlockEntity.class.getDeclaredField("o"); // o (or 'p') is obfuscated worldPosition
             UnsafeUtils.setField(positionField, tile, newPosition);
         }
         catch (NoSuchFieldException e) {
@@ -529,6 +444,9 @@ public class IWorldHandler extends WorldHandler {
         }
         chunk.setBlockEntity(tile);
         chunk.blockEntities.put(newPosition, tile);
+        final BlockState moved = ((ServerLevel)nativeWorld).getBlockState(newPosition);
+        moved.getBlock().tick(moved,(ServerLevel)world,pos,RANDOM);
+        
     }
 
     private static class TileHolder {

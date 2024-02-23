@@ -18,6 +18,7 @@
 package net.countercraft.movecraft.craft;
 
 import net.countercraft.movecraft.CruiseDirection;
+import net.countercraft.movecraft.TrackedLocation;
 import net.countercraft.movecraft.MovecraftLocation;
 import net.countercraft.movecraft.MovecraftRotation;
 import net.countercraft.movecraft.craft.type.CraftType;
@@ -35,6 +36,8 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -46,11 +49,26 @@ public interface Craft {
     @Deprecated
     void setProcessing(boolean processing);
 
-    /**
-     * Gets a HitBox representing the current locations that this craft controls
-     *
-     * @return the crafts current HitBox
-     */
+    void setSinking(boolean sinking);
+
+    boolean getSinking();
+
+    Player getNotificationPlayer();
+
+    void setNotificationPlayer(Player player);
+
+    void sink();
+
+    @NotNull
+    Map<Object, Collection<TrackedLocation>> getRawTrackedMap();
+    
+
+    @NotNull
+    Collection<TrackedLocation> getTrackedLocations(@NotNull Object key);
+
+
+    void setTrackedMovecraftLocs(@NotNull Object key, Collection<MovecraftLocation> tracked);
+
     @NotNull
     HitBox getHitBox();
 
@@ -67,6 +85,11 @@ public interface Craft {
     @NotNull
     CraftType getType();
 
+    /**
+     * Gets a HitBox representing the current locations that this craft controls
+     *
+     * @return the crafts current HitBox
+     */
     @Deprecated(forRemoval = true) @NotNull
     default World getW(){
         return this.getWorld();

@@ -10,6 +10,10 @@ public class BukkitTeleport extends SmoothTeleport {
     public void teleport(Player player, @NotNull Location location, float yawChange, float pitchChange) {
         location.setYaw(player.getLocation().getYaw() + yawChange);
         location.setPitch(player.getLocation().getPitch() + pitchChange);
-        player.teleport(location);
+        try {
+            player.teleport(location,io.papermc.paper.entity.TeleportFlag.Relative.values());
+        } catch (Exception exc) {
+            player.teleport(location);
+        }
     }
 }

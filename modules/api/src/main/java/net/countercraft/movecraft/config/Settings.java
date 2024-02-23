@@ -28,6 +28,8 @@ import java.util.Map;
 public class Settings {
     public static boolean IGNORE_RESET = false;
     public static boolean Debug = false;
+    public static int THREAD_POOL_SIZE = 3;
+    public static List<Integer> DATA_BLOCKS;
     public static boolean DisableNMSCompatibilityCheck = false;
     public static String LOCALE;
     public static Material PilotTool = Material.STICK;

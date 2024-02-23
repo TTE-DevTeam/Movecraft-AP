@@ -27,7 +27,6 @@ import net.countercraft.movecraft.mapUpdater.update.ExplosionUpdateCommand;
 import net.countercraft.movecraft.mapUpdater.update.ItemDropUpdateCommand;
 import net.countercraft.movecraft.mapUpdater.update.UpdateCommand;
 import net.countercraft.movecraft.util.Tags;
-import net.countercraft.movecraft.util.MathUtils;
 import net.countercraft.movecraft.util.WorldUtils;
 import net.countercraft.movecraft.util.hitboxes.HitBox;
 import net.countercraft.movecraft.util.hitboxes.MutableHitBox;
@@ -53,7 +52,6 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -68,6 +66,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.logging.Logger;
 
+import net.countercraft.movecraft.util.MathUtils;
 import static net.countercraft.movecraft.util.MathUtils.withinWorldBorder;
 
 public class TranslationTask extends AsyncTask {
@@ -126,28 +125,21 @@ public class TranslationTask extends AsyncTask {
         final int maxY = oldHitBox.getMaxY();
 
         // proccess nether portals
-        if (Settings.CraftsUseNetherPortals && craft.getWorld().getEnvironment() != Environment.THE_END
+        final Set<MovecraftChunk> chunksToLoad = new HashSet<>();
+        /*if (Settings.CraftsUseNetherPortals && craft.getWorld().getEnvironment() != Environment.THE_END
                 && world.equals(craft.getWorld())) {
 
             // ensure chunks are loaded for portal checking only if change in location is
             // large
-            boolean ran = false;
-            if (!ran) {
-                final Set<MovecraftChunk> chunksToLoad = ChunkManager.getChunks(oldHitBox, craft.getWorld());
-                MovecraftChunk.addSurroundingChunks(chunksToLoad, 1);
-                ChunkManager.checkChunks(chunksToLoad);
-                if (!chunksToLoad.isEmpty())
-                    ChunkManager.addChunksToLoad(chunksToLoad);//.get()
-                chunksToLoad.clear();
-                chunksToLoad.addAll(ChunkManager.getChunks(oldHitBox, world, dx, dy, dz));
-                MovecraftChunk.addSurroundingChunks(chunksToLoad, 1);
-                ChunkManager.checkChunks(chunksToLoad);
-                if (!chunksToLoad.isEmpty())
-                    ChunkManager.addChunksToLoad(chunksToLoad);//.get()
-            }
-
-
+            chunksToLoad.addAll(ChunkManager.getChunks(oldHitBox, craft.getWorld()));
+            MovecraftChunk.addSurroundingChunks(chunksToLoad, 2);
+            chunksToLoad.addAll(ChunkManager.getChunks(oldHitBox, world, dx, dy, dz));
+            ChunkManager.checkChunks(chunksToLoad);
+            if (!chunksToLoad.isEmpty())
+                ChunkManager.addChunksToLoadAsync(chunksToLoad);
+                //ChunkManager.syncLoadChunks(chunksToLoad).get();
             for (MovecraftLocation oldLocation : oldHitBox) {
+
                 Location location = oldLocation.translate(dx, dy, dz).toBukkit(craft.getWorld());
                 Block block = craft.getWorld().getBlockAt(location);
                 if (block.getType() == Material.NETHER_PORTAL) {
@@ -161,29 +153,20 @@ public class TranslationTask extends AsyncTask {
 
             }
 
-        }
+        }*/
 
         // ensure chunks are loaded only if world is different or change in location is
         // large
-
-        boolean ran = false;
-        if (!ran) {
-            final Set<MovecraftChunk> chunksToLoad = ChunkManager.getChunks(oldHitBox, craft.getWorld());
-            MovecraftChunk.addSurroundingChunks(chunksToLoad, 1);
-            ChunkManager.checkChunks(chunksToLoad);
-            if (!chunksToLoad.isEmpty())
-                ChunkManager.addChunksToLoad(chunksToLoad);//.get()
-            chunksToLoad.clear();
-            chunksToLoad.addAll(ChunkManager.getChunks(oldHitBox, world, dx, dy, dz));
-            MovecraftChunk.addSurroundingChunks(chunksToLoad, 1);
-            ChunkManager.checkChunks(chunksToLoad);
-            if (!chunksToLoad.isEmpty())
-                ChunkManager.addChunksToLoad(chunksToLoad);//.get()
-        }
+        chunksToLoad.addAll(ChunkManager.getChunks(oldHitBox, world, dx, dy, dz));
+        chunksToLoad.addAll(ChunkManager.getChunks(oldHitBox, craft.getWorld()));
+        MovecraftChunk.addSurroundingChunks(chunksToLoad, 2);
+        //ChunkManager.checkChunks(chunksToLoad);
+        if (!chunksToLoad.isEmpty())
+            //ChunkManager.addChunksToLoadAsync(chunksToLoad);
+            ChunkManager.syncLoadChunks(chunksToLoad).get();
 
         // Only modify dy when not switching worlds
         //Check if the craft is too high
-
         if (world.equals(craft.getWorld())
                 && (int) craft.getType().getPerWorldProperty(CraftType.PER_WORLD_MAX_HEIGHT_LIMIT, craft.getWorld())
                 < craft.getHitBox().getMinY())
@@ -204,7 +187,7 @@ public class TranslationTask extends AsyncTask {
         }
         //Process gravity
         if (world.equals(craft.getWorld()) && craft.getType().getBoolProperty(CraftType.USE_GRAVITY)
-                && !(craft instanceof SinkingCraft)) {
+                && !(craft instanceof SinkingCraft || craft.getSinking())) {
             int incline = inclineCraft(oldHitBox);
             if (incline > 0) {
                 boolean tooSteep = craft.getType().getIntProperty(CraftType.GRAVITY_INCLINE_DISTANCE) > -1
@@ -239,7 +222,7 @@ public class TranslationTask extends AsyncTask {
             return;
         } else if (dy > 0 && maxY + dy > maxHeightLimit) { //If explosive and too high, set dy to 0
             dy = 0;
-        } else if (minY + dy < minHeightLimit && dy < 0 && !(craft instanceof SinkingCraft)
+        } else if (minY + dy < minHeightLimit && dy < 0 && !(craft instanceof SinkingCraft || craft.getSinking())
                 && !craft.getType().getBoolProperty(CraftType.USE_GRAVITY)) {
             fail(I18nSupport.getInternationalisedString("Translation - Failed Craft hit minimum height limit"));
             return;
@@ -282,7 +265,7 @@ public class TranslationTask extends AsyncTask {
             }
 
             boolean blockObstructed;
-            if (craft instanceof SinkingCraft)
+            if (craft instanceof SinkingCraft || craft.getSinking())
                 blockObstructed = !Tags.FALL_THROUGH_BLOCKS.contains(testMaterial);
             else
                 blockObstructed = !testMaterial.isAir()
@@ -291,17 +274,19 @@ public class TranslationTask extends AsyncTask {
             boolean ignoreBlock = oldLocation.toBukkit(craft.getWorld()).getBlock().getType().isAir()
                     && blockObstructed;
             // air never obstructs anything (changed 4/18/2017 to prevent drilling machines)
-
             if (blockObstructed && !harvestBlocks.isEmpty() && harvestBlocks.contains(testMaterial)) {
-                Material tmpType = oldLocation.toBukkit(craft.getWorld()).getBlock().getType();
-                if (harvesterBladeBlocks.size() > 0 && harvesterBladeBlocks.contains(tmpType)) {
-                    blockObstructed = false;
-                    harvestedBlocks.add(newLocation);
+                if ((world.getName().contains("Void") || world.getName().contains("Orbit") || world.getName().contains("Space"))) {}
+                else {
+                  Material tmpType = oldLocation.toBukkit(craft.getWorld()).getBlock().getType();
+                  if (harvesterBladeBlocks.size() > 0 && harvesterBladeBlocks.contains(tmpType)) {
+                      blockObstructed = false;
+                      harvestedBlocks.add(newLocation);
+                  }
                 }
             }
 
             if (blockObstructed) {
-                if (!(craft instanceof SinkingCraft)
+                if (!(craft instanceof SinkingCraft || craft.getSinking())
                         && craft.getType().getFloatProperty(CraftType.COLLISION_EXPLOSION) <= 0F) {
                     fail(String.format(I18nSupport.getInternationalisedString(
                                     "Translation - Failed Craft is obstructed") + " @ %d,%d,%d,%s",
@@ -341,7 +326,7 @@ public class TranslationTask extends AsyncTask {
         }
 
         // do not switch world if sinking
-        if (craft instanceof SinkingCraft) {
+        if (craft instanceof SinkingCraft || craft.getSinking()) {
             List<MovecraftLocation> air = new ArrayList<>();
             for (MovecraftLocation location : oldHitBox) {
                 if (location.toBukkit(craft.getWorld()).getBlock().getType().isAir()) {
@@ -412,13 +397,8 @@ public class TranslationTask extends AsyncTask {
         if (!collisionBox.isEmpty()) {
             Bukkit.getServer().getPluginManager().callEvent(new CraftCollisionEvent(craft, collisionBox, world));
         }
-
-        updates.add(new CraftTranslateCommand(craft, new MovecraftLocation(dx, dy, dz), world));
-
-        //prevents torpedo and rocket pilots
-        
-        //prevents torpedo and rocket pilots
-        if (!(craft instanceof SinkingCraft && craft.getType().getBoolProperty(CraftType.ONLY_MOVE_PLAYERS)) && craft.getType().getBoolProperty(CraftType.MOVE_ENTITIES)) {
+//prevents torpedo and rocket pilots
+        if (!((craft.getSinking()) && craft.getType().getBoolProperty(CraftType.ONLY_MOVE_PLAYERS)) && craft.getType().getBoolProperty(CraftType.MOVE_ENTITIES)) {
             Location midpoint = oldHitBox.getMidPoint().toBukkit(craft.getWorld());
             List<Entity> nearEntites = new ArrayList<>();
             nearEntites.addAll(craft.getWorld().getNearbyEntities(midpoint,
@@ -436,12 +416,6 @@ public class TranslationTask extends AsyncTask {
                     continue;
                 if (entity.getType() != EntityType.PLAYER && entity.getType() != EntityType.FIREWORK && entity.getType() != EntityType.PRIMED_TNT && entity.getType() != EntityType.ARROW) {
                     if ((((BaseCraft)craft).getPassengers().contains(entity) == false)) {
-                        if (entity.getType().toString().contains("Display")) {
-                            if (!(craft.getHitBox().contains(MathUtils.bukkit2MovecraftLoc(entity.getLocation())))) {
-                                ((BaseCraft)craft).removePassenger(entity);
-                                continue;
-                            }
-                        }
                         ((BaseCraft)craft).addPassenger(entity);
                     }
                 }
@@ -462,68 +436,41 @@ public class TranslationTask extends AsyncTask {
                     }
                 }
                 if ((((BaseCraft)craft).getPassengers().contains(entity) == false)) {
-                  continue;
+                    continue;
                 }
                 if (entity.getVehicle() == null && entity.getPassenger() == null) {
                     if (!MathUtils.locationNearHitBox(craft.getHitBox(),entity.getLocation(),3.5)) {
-                      if (!MathUtils.locationNearHitBox(craft.getHitBox().boundingHitBox(),entity.getLocation(),3.5)) {
-                        //Movecraft.getInstance().getLogger().warning("Skipping Entity: "+entity+", Not Aboard");
-                        continue;
-                      }
-                    }
-                    if (craft instanceof BaseCraft) {
-                        if (!((BaseCraft)craft).hasPassenger(entity)) continue;
-                    }
-                    if (world != craft.getWorld()) {
-                      if (entity.getPassenger() != null) {
-                        entity.eject();
-                      } else if (entity.getVehicle() != null) {
-                        entity.getVehicle().eject();
-                      }
-                    }
-                    if (entity.getVehicle() != null)
-                      entity = entity.getVehicle();
-                    if (craft instanceof BaseCraft) {
-                        if (!((BaseCraft)craft).hasPassenger(entity)) continue;
+                        if (!MathUtils.locationNearHitBox(craft.getHitBox().boundingHitBox(),entity.getLocation(),3.5)) {
+                            //Movecraft.getInstance().getLogger().warning("Skipping Entity: "+entity+", Not Aboard");
+                            continue;
+                        }
                     }
                     EntityUpdateCommand eUp = new EntityUpdateCommand(entity, dx, dy, dz, 0, 0, world, sound, volume);
                     updates.add(eUp);
-                    if (entity instanceof HumanEntity) {
-                        if (iLoc != null && invMoveLoc != null) {
-                            if (oldHitBox.contains(invMoveLoc)) {
-                                MovecraftLocation imloc = invMoveLoc.translate(dx,dy,dz);
-                                updates.add(new AccessLocationUpdateCommand(inventoryView, imloc.toBukkit(world)));
-                            }
+                    if (!MathUtils.locationNearHitBox(craft.getHitBox(),entity.getLocation(),3.5)) {
+                        if (!MathUtils.locationNearHitBox(craft.getHitBox().boundingHitBox(),entity.getLocation(),3.5)) {
+                            //Movecraft.getInstance().getLogger().warning("Skipping Entity: "+entity+", Not Aboard");
+                            continue;
                         }
                     }
-                } else {
-                    if (!MathUtils.locationNearHitBox(craft.getHitBox(),entity.getLocation(),3.5)) {
-                      if (!MathUtils.locationNearHitBox(craft.getHitBox().boundingHitBox(),entity.getLocation(),3.5)) {
-                        //Movecraft.getInstance().getLogger().warning("Skipping Entity: "+entity+", Not Aboard");
-                        continue;
-                      }
-                    }
                     if (world != craft.getWorld()) {
-                      if (entity.getPassenger() != null) {
-                        entity.eject();
-                      } else if (entity.getVehicle() != null) {
-                        entity.getVehicle().eject();
-                      }
+                        if (entity.getPassenger() != null) {
+                            entity.eject();
+                        } else if (entity.getVehicle() != null) {
+                            entity.getVehicle().eject();
+                        }
                     }
                     if (entity.getVehicle() != null)
-                      entity = entity.getVehicle();
-                    if (craft instanceof BaseCraft) {
-                        if (!((BaseCraft)craft).hasPassenger(entity)) continue;
-                    }
-                    EntityUpdateCommand eUp = new EntityUpdateCommand(entity, dx, dy, dz, 0, 0, world, sound, volume);
+                        entity = entity.getVehicle();
+                    eUp = new EntityUpdateCommand(entity, dx, dy, dz, 0, 0, world, sound, volume);
                     updates.add(eUp);
                 }
 
                 if (entity instanceof HumanEntity) {
                     if (iLoc != null && invMoveLoc != null) {
                         if (oldHitBox.contains(invMoveLoc)) {
-                            MovecraftLocation imloc = invMoveLoc.translate(dx,dy,dz);
-                            updates.add(new AccessLocationUpdateCommand(inventoryView, imloc.toBukkit(world)));
+                            invMoveLoc = invMoveLoc.translate(dx,dy,dz);
+                            updates.add(new AccessLocationUpdateCommand(inventoryView, invMoveLoc.toBukkit(world)));
                         }
                     }
                 }
@@ -534,7 +481,93 @@ public class TranslationTask extends AsyncTask {
                 // not necessary to release cruiseonpilot crafts, because they will already be released
                 CraftManager.getInstance().addReleaseTask(craft);
         }
-        captureYield(harvestedBlocks);
+        updates.add(new CraftTranslateCommand(craft, new MovecraftLocation(dx, dy, dz), world));
+        //prevents torpedo and rocket pilots
+        if (!(craft.getSinking() && craft.getType().getBoolProperty(CraftType.ONLY_MOVE_PLAYERS)) && craft.getType().getBoolProperty(CraftType.MOVE_ENTITIES)) {
+            Location midpoint = oldHitBox.getMidPoint().toBukkit(craft.getWorld());
+            List<Entity> nearEntites = new ArrayList<>();
+            nearEntites.addAll(craft.getWorld().getNearbyEntities(midpoint,
+                    oldHitBox.getXLength() / 2.0 + 3.0,
+                    oldHitBox.getYLength() / 1.5 + 3.0,
+                    oldHitBox.getZLength() / 2.0 + 3.0));
+            nearEntites.addAll(((BaseCraft)craft).getPassengers());
+            for (Craft c2 : CraftManager.getInstance().getCraftsInWorld(craft.getWorld())) {
+                if (c2.equals(craft))
+                    continue;
+                nearEntites.removeAll(((BaseCraft)c2).getPassengers());
+            }
+            for (Entity entity : nearEntites) {
+                if (entity == null)
+                    continue;
+                if (entity.getType() != EntityType.PLAYER && entity.getType() != EntityType.FIREWORK && entity.getType() != EntityType.PRIMED_TNT && entity.getType() != EntityType.ARROW) {
+                    if ((((BaseCraft)craft).getPassengers().contains(entity) == false)) {
+                        ((BaseCraft)craft).addPassenger(entity);
+                    }
+                }
+
+                InventoryView inventoryView = null;
+                Location iLoc = null;
+                MovecraftLocation invMoveLoc = null;
+                if (entity instanceof HumanEntity) {
+                    inventoryView = ((HumanEntity) entity).getOpenInventory();
+                    if (inventoryView.getType() != InventoryType.CRAFTING) {
+                        iLoc = Movecraft.getInstance().getWorldHandler().getAccessLocation(inventoryView);
+                        if (iLoc != null) {
+                            invMoveLoc = new MovecraftLocation(iLoc.getBlockX(), iLoc.getBlockY(), iLoc.getBlockZ());
+                            if (inventoryView.getTopInventory().getHolder() == null) {
+                                invMoveLoc = null;
+                            }
+                        }
+                    }
+                }
+                if ((((BaseCraft)craft).getPassengers().contains(entity) == false)) {
+                    continue;
+                }
+                if (entity.getVehicle() == null && entity.getPassenger() == null) {
+                    if (!MathUtils.locationNearHitBox(craft.getHitBox(),entity.getLocation(),3.5)) {
+                        if (!MathUtils.locationNearHitBox(craft.getHitBox().boundingHitBox(),entity.getLocation(),3.5)) {
+                            //Movecraft.getInstance().getLogger().warning("Skipping Entity: "+entity+", Not Aboard");
+                            continue;
+                        }
+                    }
+                    EntityUpdateCommand eUp = new EntityUpdateCommand(entity, dx, dy, dz, 0, 0, world, sound, volume);
+                    updates.add(eUp);
+                } else {
+                    if (!MathUtils.locationNearHitBox(craft.getHitBox(),entity.getLocation(),3.5)) {
+                        if (!MathUtils.locationNearHitBox(craft.getHitBox().boundingHitBox(),entity.getLocation(),3.5)) {
+                            //Movecraft.getInstance().getLogger().warning("Skipping Entity: "+entity+", Not Aboard");
+                            continue;
+                        }
+                    }
+                    if (world != craft.getWorld()) {
+                        if (entity.getPassenger() != null) {
+                            entity.eject();
+                        } else if (entity.getVehicle() != null) {
+                            entity.getVehicle().eject();
+                        }
+                    }
+                    if (entity.getVehicle() != null)
+                        entity = entity.getVehicle();
+                    EntityUpdateCommand eUp = new EntityUpdateCommand(entity, dx, dy, dz, 0, 0, world, sound, volume);
+                    updates.add(eUp);
+                }
+
+                if (entity instanceof HumanEntity) {
+                    if (iLoc != null && invMoveLoc != null) {
+                        if (oldHitBox.contains(invMoveLoc)) {
+                            invMoveLoc = invMoveLoc.translate(dx,dy,dz);
+                            updates.add(new AccessLocationUpdateCommand(inventoryView, invMoveLoc.toBukkit(world)));
+                        }
+                    }
+                }
+            }
+        } else {
+            // add releaseTask without playermove to manager
+            if (!craft.getType().getBoolProperty(CraftType.CRUISE_ON_PILOT) && !(craft instanceof SinkingCraft))
+                // not necessary to release cruiseonpilot crafts, because they will already be released
+                CraftManager.getInstance().addReleaseTask(craft);
+        }
+        //captureYield(harvestedBlocks);
     }
 
     private void fail(@NotNull String failMessage) {
@@ -957,11 +990,6 @@ public class TranslationTask extends AsyncTask {
 
     public MutableHitBox getNewFluidList() {
         return newFluidList;
-    }
-
-    @Override
-    public World getWorld() {
-        return world;
     }
 
     public Collection<UpdateCommand> getUpdates() {

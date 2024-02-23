@@ -4,13 +4,16 @@ import it.unimi.dsi.fastutil.Hash;
 import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenCustomHashMap;
 import net.countercraft.movecraft.Movecraft;
+import net.countercraft.movecraft.TrackedLocation;
 import net.countercraft.movecraft.MovecraftLocation;
 import net.countercraft.movecraft.MovecraftRotation;
 import net.countercraft.movecraft.WorldHandler;
 import net.countercraft.movecraft.config.Settings;
 import net.countercraft.movecraft.craft.Craft;
+import net.countercraft.movecraft.craft.BaseCraft;
 import net.countercraft.movecraft.craft.CraftManager;
 import net.countercraft.movecraft.craft.SinkingCraft;
+import net.countercraft.movecraft.craft.PlayerCraftImpl;
 import net.countercraft.movecraft.craft.type.CraftType;
 import net.countercraft.movecraft.events.CraftReleaseEvent;
 import net.countercraft.movecraft.events.SignTranslateEvent;
@@ -21,6 +24,7 @@ import net.countercraft.movecraft.util.hitboxes.HitBox;
 import net.countercraft.movecraft.util.hitboxes.SetHitBox;
 import net.countercraft.movecraft.util.hitboxes.SolidHitBox;
 import org.bukkit.Bukkit;
+import org.bukkit.World;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Tag;
@@ -28,11 +32,16 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.Sign;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.block.data.Waterlogged;
 import org.jetbrains.annotations.NotNull;
+import org.bukkit.scheduler.BukkitRunnable;
+//import com.jeff_media.customblockdata.*;
+//import com.jeff_media.morepersistentdatatypes.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -44,6 +53,22 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.ArrayDeque;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Queue;
+import java.util.Set;
+import java.util.logging.Logger;
 
 
 public class CraftRotateCommand extends UpdateCommand {
@@ -53,12 +78,15 @@ public class CraftRotateCommand extends UpdateCommand {
     private final MovecraftRotation rotation;
     @NotNull
     private final MovecraftLocation originLocation;
+    @NotNull
+    private final World world;
 
 
     public CraftRotateCommand(@NotNull final Craft craft, @NotNull final MovecraftLocation originLocation, @NotNull final MovecraftRotation rotation) {
         this.craft = craft;
         this.rotation = rotation;
         this.originLocation = originLocation;
+        this.world = craft.getWorld();
     }
 
     @Override
@@ -69,6 +97,7 @@ public class CraftRotateCommand extends UpdateCommand {
             CraftManager.getInstance().release(craft, CraftReleaseEvent.Reason.EMPTY, false);
             return;
         }
+        final MovecraftRotation counterRotation = rotation == MovecraftRotation.CLOCKWISE ? MovecraftRotation.ANTICLOCKWISE : MovecraftRotation.CLOCKWISE;
         long time = System.nanoTime();
         final Set<Material> passthroughBlocks = new HashSet<>(craft.getType().getMaterialSetProperty(CraftType.PASSTHROUGH_BLOCKS));
         if (craft instanceof SinkingCraft) {
@@ -76,9 +105,25 @@ public class CraftRotateCommand extends UpdateCommand {
             passthroughBlocks.addAll(Tag.LEAVES.getValues());
             passthroughBlocks.addAll(Tags.SINKING_PASSTHROUGH);
         }
+        if (craft instanceof BaseCraft) {
+            if (((BaseCraft)craft).getRawTrackedMap().size() > 0) {
+                for (Object key : ((BaseCraft)craft).getRawTrackedMap().keySet()) {
+                    //Set<Object> mlocs = ((BaseCraft)craft).getRawTrackedMap().get(key);
+                    final ArrayList<TrackedLocation> clone = new ArrayList<>();
+                    for (Object tracked : ((BaseCraft)craft).getRawTrackedMap().get(key)) {
+                        if (tracked != null) {
+                            TrackedLocation newTracked = ((TrackedLocation) tracked).rotateTracked(originLocation,rotation);
+                            clone.add(newTracked);
+                        }
+                    }
+                    if (!clone.isEmpty() || clone != null || clone.size() > 0) {
+                        ((BaseCraft)craft).getRawTrackedMap().put(key,clone);
+                    }
+                }
+            }
+        }
         if (!passthroughBlocks.isEmpty()) {
             SetHitBox originalLocations = new SetHitBox();
-            final MovecraftRotation counterRotation = rotation == MovecraftRotation.CLOCKWISE ? MovecraftRotation.ANTICLOCKWISE : MovecraftRotation.CLOCKWISE;
             for (MovecraftLocation movecraftLocation : craft.getHitBox()) {
                 originalLocations.add(MathUtils.rotateVec(counterRotation, movecraftLocation.subtract(originLocation)).add(originLocation));
             }
@@ -86,8 +131,10 @@ public class CraftRotateCommand extends UpdateCommand {
             final HitBox to = craft.getHitBox().difference(originalLocations);
 
             for (MovecraftLocation location : to) {
-                var data = location.toBukkit(craft.getWorld()).getBlock().getBlockData();
-                if (passthroughBlocks.contains(data.getMaterial())) {
+                BlockData data = location.toBukkit(craft.getWorld()).getBlock().getBlockData();
+                if ((data instanceof Waterlogged))
+                    ((Waterlogged)data).setWaterlogged(false);
+                if (passthroughBlocks.contains(location.toBukkit(craft.getWorld()).getBlock().getType())) {
                     craft.getPhaseBlocks().put(location.toBukkit(craft.getWorld()), data);
                 }
             }
@@ -142,19 +189,21 @@ public class CraftRotateCommand extends UpdateCommand {
             interior.addAll(invertedHitBox.difference(exterior));
 
             final WorldHandler handler = Movecraft.getInstance().getWorldHandler();
-            for (MovecraftLocation location : invertedHitBox.difference(exterior)) {
-                var data = location.toBukkit(craft.getWorld()).getBlock().getBlockData();
-                if (!passthroughBlocks.contains(data.getMaterial())) {
-                    continue;
-                }
-                craft.getPhaseBlocks().put(location.toBukkit(craft.getWorld()), data);
-            }
 
-            //translate the craft
+            //rotate the craft
 
             handler.rotateCraft(craft, originLocation, rotation);
             //trigger sign events
             sendSignEvents();
+            for (MovecraftLocation location : invertedHitBox.difference(exterior)) {
+                BlockData data = location.toBukkit(craft.getWorld()).getBlock().getBlockData();
+                if ((data instanceof Waterlogged))
+                    ((Waterlogged)data).setWaterlogged(false);
+                if (!passthroughBlocks.contains(location.toBukkit(craft.getWorld()).getBlock().getType())) {
+                    continue;
+                }
+                craft.getPhaseBlocks().put(location.toBukkit(craft.getWorld()), data);
+            }
 
             //place confirmed blocks if they have been un-phased
             for (MovecraftLocation location : exterior) {
@@ -177,19 +226,15 @@ public class CraftRotateCommand extends UpdateCommand {
 
             for (MovecraftLocation location : interior) {
                 Location bukkit = location.toBukkit(craft.getWorld());
-                var data = bukkit.getBlock().getBlockData();
-                if (passthroughBlocks.contains(data.getMaterial())) {
+                BlockData data = location.toBukkit(craft.getWorld()).getBlock().getBlockData();
+                if ((data instanceof Waterlogged))
+                    ((Waterlogged)data).setWaterlogged(false);
+                if (passthroughBlocks.contains(location.toBukkit(craft.getWorld()).getBlock().getType())) {
                     craft.getPhaseBlocks().put(bukkit, data);
-                    handler.setBlockFast(bukkit, Material.AIR.createBlockData());
+                    handler.setBlockFast(bukkit, Movecraft.getInstance().getAirBlockData());
 
                 }
             }
-        } else {
-            //translate the craft
-
-            Movecraft.getInstance().getWorldHandler().rotateCraft(craft, originLocation, rotation);
-            //trigger sign events
-            sendSignEvents();
         }
 
         if (!craft.isNotProcessing())
@@ -233,7 +278,7 @@ public class CraftRotateCommand extends UpdateCommand {
             for (MovecraftLocation location : entry.getValue()) {
                 Block block = location.toBukkit(craft.getWorld()).getBlock();
                 BlockState state = block.getState();
-                BlockData data = block.getBlockData();
+                BlockData data = location.toBukkit(craft.getWorld()).getBlock().getBlockData();
                 if (!(state instanceof Sign)) {
                     continue;
                 }
@@ -241,11 +286,13 @@ public class CraftRotateCommand extends UpdateCommand {
                 for (int i = 0; i < 4; i++) {
                     sign.setLine(i, entry.getKey()[i]);
                 }
+                //sign.setBlockData(data);
                 sign.update(false, false);
-                block.setBlockData(data);
+                block.setBlockData(data,false);
             }
         }
     }
+
 
     @NotNull
     public Craft getCraft() {

@@ -19,6 +19,7 @@ import net.countercraft.movecraft.processing.functions.CraftSupplier;
 import net.countercraft.movecraft.processing.functions.DetectionPredicate;
 import net.countercraft.movecraft.processing.functions.Result;
 import net.countercraft.movecraft.processing.tasks.detection.validators.AllowedBlockValidator;
+import net.countercraft.movecraft.processing.tasks.detection.validators.AllowedIgnoreBlockValidator;
 import net.countercraft.movecraft.processing.tasks.detection.validators.FlyBlockValidator;
 import net.countercraft.movecraft.processing.tasks.detection.validators.ForbiddenBlockValidator;
 import net.countercraft.movecraft.processing.tasks.detection.validators.ForbiddenSignStringValidator;
@@ -31,11 +32,11 @@ import net.countercraft.movecraft.util.CollectionUtils;
 import net.countercraft.movecraft.util.Tags;
 import net.countercraft.movecraft.util.hitboxes.BitmapHitBox;
 import net.countercraft.movecraft.util.hitboxes.HitBox;
-import net.countercraft.movecraft.util.hitboxes.MutableHitBox;
 import net.countercraft.movecraft.util.hitboxes.SetHitBox;
 import net.countercraft.movecraft.util.hitboxes.SolidHitBox;
 import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -65,7 +66,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-public class DetectionTask implements Supplier<Effect> {
+public class IgnoreDetectionTask implements Supplier<Effect> {
     private final static MovecraftLocation[] SHIFTS = {
             new MovecraftLocation(0, 1, 1),
             new MovecraftLocation(0, 0, 1),
@@ -82,7 +83,7 @@ public class DetectionTask implements Supplier<Effect> {
             new MovecraftLocation(-1, 0, 0),
             new MovecraftLocation(-1, -1, 0)
     };
-    private static final AllowedBlockValidator ALLOWED_BLOCK_VALIDATOR = new AllowedBlockValidator();
+    private static final AllowedIgnoreBlockValidator ALLOWED_BLOCK_VALIDATOR = new AllowedIgnoreBlockValidator();
     private static final ForbiddenBlockValidator FORBIDDEN_BLOCK_VALIDATOR = new ForbiddenBlockValidator();
     private static final List<DetectionPredicate<MovecraftLocation>> VALIDATORS = List.of(
             new ForbiddenSignStringValidator(),
@@ -99,6 +100,7 @@ public class DetectionTask implements Supplier<Effect> {
 
 
 
+    private final List<BlockData> mat;
     private final MovecraftLocation startLocation;
     private final MovecraftWorld movecraftWorld;
     private final CraftType type;
@@ -117,11 +119,12 @@ public class DetectionTask implements Supplier<Effect> {
     private final ConcurrentLinkedDeque<MovecraftLocation> legal = new ConcurrentLinkedDeque<>();
 
 
-    public DetectionTask(@NotNull MovecraftLocation startLocation, @NotNull MovecraftWorld movecraftWorld,
+    public IgnoreDetectionTask(@NotNull List<BlockData> mat, @NotNull MovecraftLocation startLocation, @NotNull MovecraftWorld movecraftWorld,
                             @NotNull CraftType type, @NotNull CraftSupplier supplier,
                             @NotNull World world, @Nullable Player player,
                             @NotNull Audience audience,
                             @NotNull Function<Craft, Effect> postDetection) {
+        this.mat = mat;
         this.startLocation = startLocation;
         this.movecraftWorld = movecraftWorld;
         this.type = type;
@@ -186,15 +189,11 @@ public class DetectionTask implements Supplier<Effect> {
         confirmed.addAll(visited);
         entireHitbox.addAll(invertedHitBox.difference(confirmed));
 
+        var waterData = Bukkit.createBlockData(Material.WATER);
         return () -> {
             for (MovecraftLocation location : entireHitbox) {
                 if (location.getY() <= waterLine) {
-                    craft.getPhaseBlocks().put(location.toBukkit(badWorld), Movecraft.getInstance().getWaterBlockData());
-                }
-            }
-            for (MovecraftLocation location : craft.getHitBox().boundingHitBox()) {
-                if (location.getY() <= waterLine) {
-                    craft.getPhaseBlocks().put(location.toBukkit(badWorld), Movecraft.getInstance().getWaterBlockData());
+                    craft.getPhaseBlocks().put(location.toBukkit(badWorld), waterData);
                 }
             }
         };
@@ -313,7 +312,7 @@ public class DetectionTask implements Supplier<Effect> {
         while(!currentFrontier.isEmpty() && size.intValue() < type.getIntProperty(CraftType.MAX_SIZE) + threads) {
             List<ForkJoinTask<?>> tasks = new ArrayList<>();
             for(int j = 0; j < threads ; j++) {
-                tasks.add(ForkJoinPool.commonPool().submit(new DetectAction(currentFrontier, nextFrontier)));
+                tasks.add(ForkJoinPool.commonPool().submit(new DetectAction(currentFrontier, nextFrontier, this.mat)));
             }
 
             for(var task : tasks) {
@@ -334,10 +333,13 @@ public class DetectionTask implements Supplier<Effect> {
     private class DetectAction implements Runnable {
         private final ConcurrentLinkedQueue<MovecraftLocation> currentFrontier;
         private final ConcurrentLinkedQueue<MovecraftLocation> nextFrontier;
+        private final List<BlockData> mat;
 
-        private DetectAction(ConcurrentLinkedQueue<MovecraftLocation> currentFrontier, ConcurrentLinkedQueue<MovecraftLocation> nextFrontier) {
+
+        private DetectAction(ConcurrentLinkedQueue<MovecraftLocation> currentFrontier, ConcurrentLinkedQueue<MovecraftLocation> nextFrontier, List<BlockData> mat) {
             this.currentFrontier = currentFrontier;
             this.nextFrontier = nextFrontier;
+            this.mat = mat;
         }
 
         @Override
@@ -345,16 +347,20 @@ public class DetectionTask implements Supplier<Effect> {
             MovecraftLocation probe;
             while((probe = currentFrontier.poll()) != null) {
                 visitedMaterials.computeIfAbsent(movecraftWorld.getMaterial(probe), Functions.forSupplier(ConcurrentLinkedDeque::new)).add(probe);
-                if(!ALLOWED_BLOCK_VALIDATOR.validate(probe, type, movecraftWorld, player).isSucess())
+                if(!ALLOWED_BLOCK_VALIDATOR.validate(probe, type, movecraftWorld, player, mat).isSucess())
                     continue;
-
                 DetectionPredicate<MovecraftLocation> chain = FORBIDDEN_BLOCK_VALIDATOR;
                 for(var validator : VALIDATORS) {
                     chain = chain.and(validator);
                 }
                 var result = chain.validate(probe, type, movecraftWorld, player);
-
+                if (mat.contains(movecraftWorld.getData(probe))) {
+                    continue;
+                }
                 if(result.isSucess()) {
+                    if (mat.contains(movecraftWorld.getData(probe))) {
+                        continue;
+                    }
                     legal.add(probe);
                     if(Tags.FLUID.contains(movecraftWorld.getMaterial(probe)))
                         fluid.add(probe);
@@ -363,8 +369,13 @@ public class DetectionTask implements Supplier<Effect> {
 
                     for(MovecraftLocation shift : SHIFTS) {
                         var shifted = probe.add(shift);
-                        if(visited.add(shifted))
+                        if (mat.contains(movecraftWorld.getData(shifted).getAsString(false).toUpperCase()) || mat.contains(movecraftWorld.getMaterial(shifted).toString().toUpperCase())) {
+                            nextFrontier.remove(shifted);
+                            continue;
+                        }
+                        if(visited.add(shifted)) {
                             nextFrontier.add(shifted);
+                        }
                     }
                 }
                 else {

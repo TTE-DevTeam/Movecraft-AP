@@ -64,6 +64,15 @@ public class PilotCommand implements TabExecutor {
         final World world = player.getWorld();
         MovecraftLocation startPoint = MathUtils.bukkit2MovecraftLoc(player.getLocation());
 
+        if (args.length == 1) {
+            final Craft pCraft = CraftManager.getInstance().getCraftByPlayerName(player.getName());
+
+            if (pCraft == null) {
+                player.sendMessage(MOVECRAFT_COMMAND_PREFIX + I18nSupport.getInternationalisedString("Player- Error - You do not have a craft to release!"));
+            } else {
+                CraftManager.getInstance().removeCraft(pCraft, CraftReleaseEvent.Reason.PLAYER);
+            }
+        }
         CraftManager.getInstance().detect(
                 startPoint,
                 craftType, (type, w, p, parents) -> {
@@ -81,7 +90,7 @@ public class PilotCommand implements TabExecutor {
                     // Release old craft if it exists
                     Craft oldCraft = CraftManager.getInstance().getCraftByPlayer(player);
                     if(oldCraft != null)
-                        CraftManager.getInstance().release(oldCraft, CraftReleaseEvent.Reason.PLAYER, false);
+                        CraftManager.getInstance().removeCraft(oldCraft, CraftReleaseEvent.Reason.PLAYER);
                 }
         );
        return true;

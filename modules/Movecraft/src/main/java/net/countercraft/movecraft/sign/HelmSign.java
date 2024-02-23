@@ -29,7 +29,7 @@ public final class HelmSign implements Listener {
         event.setLine(2, "/  ||  \\");
     }
 
-    @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = false)
     public void onSignClick(@NotNull PlayerInteractEvent event) {
         MovecraftRotation rotation;
         if (event.getAction() == Action.RIGHT_CLICK_BLOCK) {
@@ -49,7 +49,6 @@ public final class HelmSign implements Listener {
                 ChatColor.stripColor(sign.getLine(2)).equals("/  ||  \\"))) {
             return;
         }
-        event.setCancelled(true);
         Craft craft = CraftManager.getInstance().getCraftByPlayer(event.getPlayer());
         if (craft == null) {
             return;
@@ -84,6 +83,7 @@ public final class HelmSign implements Listener {
         }
 
         //timeMap.put(event.getPlayer(), System.currentTimeMillis());
+        //event.setCancelled(true);
         //TODO: Lower speed while turning
             /*int curTickCooldown = CraftManager.getInstance().getCraftByPlayer(event.getPlayer()).getCurTickCooldown();
             int baseTickCooldown = CraftManager.getInstance().getCraftByPlayer(event.getPlayer()).getType().getCruiseTickCooldown();

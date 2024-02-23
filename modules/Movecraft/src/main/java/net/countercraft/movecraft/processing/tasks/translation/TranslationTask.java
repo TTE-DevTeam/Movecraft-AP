@@ -3,7 +3,7 @@ package net.countercraft.movecraft.processing.tasks.translation;
 import net.countercraft.movecraft.MovecraftLocation;
 import net.countercraft.movecraft.MovecraftRotation;
 import net.countercraft.movecraft.craft.Craft;
-import net.countercraft.movecraft.craft.SinkingCraft;
+import net.countercraft.movecraft.craft.BaseCraft;
 import net.countercraft.movecraft.craft.type.CraftType;
 import net.countercraft.movecraft.events.CraftCollisionEvent;
 import net.countercraft.movecraft.events.CraftPreTranslateEvent;
@@ -46,10 +46,7 @@ public class TranslationTask implements Supplier<Effect> {
     private static final List<MonadicPredicate<Craft>> preTranslationValidators = new ArrayList<>();
     static {
         preTranslationValidators.add((craft -> craft.getHitBox().isEmpty() ? Result.failWithMessage("Empty hitbox") : Result.succeed()));
-        preTranslationValidators.add((craft -> craft.getDisabled() && !(craft instanceof SinkingCraft)
-                ? Result.failWithMessage(
-                        I18nSupport.getInternationalisedString("Translation - Failed Craft Is Disabled"))
-                : Result.succeed()));
+        preTranslationValidators.add((craft -> craft.getDisabled() && !craft.getSinking() ? Result.failWithMessage(I18nSupport.getInternationalisedString("Translation - Failed Craft Is Disabled")) : Result.succeed()));
     }
     private static final List<TetradicPredicate<MovecraftLocation, MovecraftWorld, HitBox, CraftType>> translationValidators = new ArrayList<>();
     static {
@@ -93,17 +90,17 @@ public class TranslationTask implements Supplier<Effect> {
         var collisions = new SetHitBox();
         var phaseLocations = new SetHitBox();
         var harvestLocations = new SetHitBox();
-        var fuelSources = new ArrayList<FurnaceInventory>();
+        //var fuelSources = new ArrayList<FurnaceInventory>();
         for(var originLocation : craft.getHitBox()){
             var originMaterial = craft.getMovecraftWorld().getMaterial(originLocation);
             // Remove air from hitboxes
             if(originMaterial.isAir())
                 continue;
-            if(Tags.FURNACES.contains(originMaterial)) {
-                var state = craft.getMovecraftWorld().getState(originLocation);
-                if(state instanceof FurnaceInventory)
-                    fuelSources.add((FurnaceInventory) state);
-            }
+            //if(Tags.FURNACES.contains(originMaterial)) {
+            //    var state = craft.getMovecraftWorld().getState(originLocation);
+            //    if(state instanceof FurnaceInventory)
+            //        fuelSources.add((FurnaceInventory) state);
+            //}
 
             var destination = originLocation.add(translation);
 
@@ -124,7 +121,7 @@ public class TranslationTask implements Supplier<Effect> {
             }
             collisions.add(destination);
         }
-        double fuelBurnRate = (double) craft.getType().getPerWorldProperty(CraftType.PER_WORLD_FUEL_BURN_RATE, preTranslateEvent.getWorld());
+        /*double fuelBurnRate = (double) craft.getType().getPerWorldProperty(CraftType.PER_WORLD_FUEL_BURN_RATE, preTranslateEvent.getWorld());
         Effect fuelBurnEffect;
         if (craft.getBurningFuel() >= fuelBurnRate) {
             //call event
@@ -138,8 +135,8 @@ public class TranslationTask implements Supplier<Effect> {
             }
             callFuelEvent(craft, findFuelStack(craft.getType(), fuelSource));
             //TODO: Take Fuel
-            fuelBurnEffect = () -> Bukkit.getLogger().info("This is where we'd take ur fuel, if we had some");
-        }
+            //fuelBurnEffect = () -> Bukkit.getLogger().info("This is where we'd take ur fuel, if we had some");
+        }*/
         var translationResult = translationValidators.stream().reduce(TetradicPredicate::and).orElseThrow().validate(translation, destinationWorld, destinationLocations, craft.getType());
         if(!translationResult.isSucess()){
             return () -> craft.getAudience().sendMessage(Component.text(translationResult.getMessage()));
@@ -149,9 +146,9 @@ public class TranslationTask implements Supplier<Effect> {
 
         // Direct float comparison due to check for statically initialized value
         callCollisionEvent(craft, collisions, preTranslateEvent.getWorld());
-        if(craft.getType().getFloatProperty(CraftType.COLLISION_EXPLOSION) <= 0F && !collisions.isEmpty()){
+        if(craft.getType().getFloatProperty(CraftType.COLLISION_EXPLOSION) >= 0F && !collisions.isEmpty()){
             //TODO: collision highlights
-            return () -> craft.getAudience().sendMessage(Component.text(String.format(I18nSupport.getInternationalisedString("Translation - Failed Craft is obstructed") + " @ %d,%d,%d,%s", 0, 0, 0, "not_implemented")));
+            //return () -> craft.getAudience().sendMessage(Component.text(String.format(I18nSupport.getInternationalisedString("Translation - Failed Craft is obstructed") + " @ %d,%d,%d,%s", 0, 0, 0, "not_implemented")));
         }
         Effect fluidBoxEffect = fluidBox(craft, translation);
         var  translateEvent = callTranslateEvent(craft, destinationLocations, preTranslateEvent.getWorld());
@@ -161,8 +158,7 @@ public class TranslationTask implements Supplier<Effect> {
         Effect movementEffect = moveCraft();
         //TODO: un-phase blocks
         Effect teleportEffect = new TeleportationEffect(craft, translation, translateEvent.getWorld());
-        return fuelBurnEffect
-                .andThen(fluidBoxEffect)
+        return (fluidBoxEffect)
                 .andThen(movementEffect)
                 .andThen(teleportEffect);
     }

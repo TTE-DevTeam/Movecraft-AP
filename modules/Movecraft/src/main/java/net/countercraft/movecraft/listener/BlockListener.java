@@ -19,23 +19,45 @@ package net.countercraft.movecraft.listener;
 
 import net.countercraft.movecraft.MovecraftLocation;
 import net.countercraft.movecraft.config.Settings;
-import net.countercraft.movecraft.craft.Craft;
+import net.countercraft.movecraft.craft.*;
 import net.countercraft.movecraft.craft.CraftManager;
-import net.countercraft.movecraft.craft.PilotedCraft;
-import net.countercraft.movecraft.craft.PlayerCraft;
-import net.countercraft.movecraft.craft.type.CraftType;
+import net.countercraft.movecraft.localisation.I18nSupport;
 import net.countercraft.movecraft.util.MathUtils;
 import net.countercraft.movecraft.util.Tags;
-import net.countercraft.movecraft.util.hitboxes.BitmapHitBox;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.Hopper;
 import org.bukkit.block.data.BlockData;
-import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.World;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
+import org.bukkit.block.BlockState;
+import org.bukkit.block.Container;
+import org.bukkit.block.data.BlockData;
+import org.bukkit.block.data.Directional;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.BlockInventoryHolder;
+import org.bukkit.inventory.InventoryHolder;
+import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
+import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.World;
+import org.bukkit.block.Block;
+import org.bukkit.block.Sign;
+import org.bukkit.block.data.BlockData;
+import org.bukkit.entity.Player;
+import org.bukkit.entity.Entity;
+import org.bukkit.OfflinePlayer;
+import org.bukkit.entity.Player;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockDispenseEvent;
 import org.bukkit.event.block.BlockFormEvent;
@@ -43,11 +65,11 @@ import org.bukkit.event.block.BlockFromToEvent;
 import org.bukkit.event.block.BlockPhysicsEvent;
 import org.bukkit.event.block.BlockPistonExtendEvent;
 import org.bukkit.event.block.BlockRedstoneEvent;
-import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.ItemSpawnEvent;
 import org.bukkit.event.inventory.InventoryMoveItemEvent;
 import org.bukkit.material.Attachable;
-import org.bukkit.util.Vector;
+import org.bukkit.event.block.BlockExplodeEvent;
+import org.bukkit.event.entity.EntityExplodeEvent;
 import org.jetbrains.annotations.NotNull;
 
 public class BlockListener implements Listener {
@@ -66,35 +88,48 @@ public class BlockListener implements Listener {
 
             if (craft.getHitBox().contains(movecraftLocation)) {
                 // TODO: for some reason before when this check runs the location is no longer in the hitbox
+                //if (craft.getPassengers().contains(e.getPlayer())) {
+                //  return;
+                //}
                 e.setCancelled(true);
                 return;
             }
         }
     }
-
-    //Prevents non pilots from placing blocks on your ship.
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onBlockPlace(BlockPlaceEvent e) {
-        if (!Settings.ProtectPilotedCrafts)
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onEntityExplode(EntityExplodeEvent e) {
+        if (e.isCancelled()) {
             return;
-
-        Player p = e.getPlayer();
-
-        MovecraftLocation placedLocation = MathUtils.bukkit2MovecraftLoc(e.getBlockAgainst().getLocation());
-        for (Craft craft : CraftManager.getInstance().getCraftsInWorld(e.getBlock().getWorld())) {
-            if (craft == null || craft.getDisabled())
-                continue;
-
-            if(!(craft instanceof PilotedCraft)) {
-                continue;
+        }
+        if (e.getEntity() == null) return;
+        BaseCraft craft = null;
+        if (CraftManager.getInstance().fastNearestCraftToLoc(e.getEntity().getLocation()) != null) {
+            if (CraftManager.getInstance().fastNearestCraftToLoc(e.getEntity().getLocation()) instanceof BaseCraft) {
+                craft = (BaseCraft)CraftManager.getInstance().fastNearestCraftToLoc(e.getEntity().getLocation());
             }
-            if (((PilotedCraft) craft).getPilot() == p) {
-                continue;
+        }
+        for (Block block : e.blockList()) {
+            if (!block.getType().isSolid()) continue;
+            if (craft != null) {
+                craft.removeBlock(block);
             }
-
-            if (craft.getHitBox().contains(placedLocation)) {
-                e.setCancelled(true);
-                return;
+        }
+    }
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onBlockExplode(BlockExplodeEvent e) {
+        if (e.isCancelled()) {
+            return;
+        }
+        BaseCraft craft = null;
+        if (CraftManager.getInstance().fastNearestCraftToLoc(e.getBlock().getLocation()) != null) {
+            if (CraftManager.getInstance().fastNearestCraftToLoc(e.getBlock().getLocation()) instanceof BaseCraft) {
+                craft = (BaseCraft)CraftManager.getInstance().fastNearestCraftToLoc(e.getBlock().getLocation());
+            }
+        }
+        for (Block block : e.blockList()) {
+            if (!block.getType().isSolid()) continue;
+            if (craft != null) {
+                craft.removeBlock(block);
             }
         }
     }
@@ -116,16 +151,15 @@ public class BlockListener implements Listener {
     // prevent water and lava from spreading on moving crafts
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onBlockFromTo(BlockFromToEvent e) {
-        if (e.isCancelled())
+        if (e.isCancelled()) {
             return;
-
+        }
         Block block = e.getToBlock();
-        if (!Tags.FLUID.contains(block.getType()))
+        if (block.getType() != Material.WATER && block.getType() != Material.LAVA) {
             return;
-
-        MovecraftLocation location = MathUtils.bukkit2MovecraftLoc(block.getLocation());
+        }
         for (Craft tcraft : CraftManager.getInstance().getCraftsInWorld(block.getWorld())) {
-            if ((!tcraft.isNotProcessing()) && MathUtils.locIsNearCraftFast(tcraft, location)) {
+            if ((!tcraft.isNotProcessing()) && MathUtils.locIsNearCraftFast(tcraft, MathUtils.bukkit2MovecraftLoc(block.getLocation()))) {
                 e.setCancelled(true);
                 return;
             }
@@ -155,19 +189,9 @@ public class BlockListener implements Listener {
         Block block = event.getBlock();
         CraftManager.getInstance().getCraftsInWorld(block.getWorld());
         for (Craft tcraft : CraftManager.getInstance().getCraftsInWorld(block.getWorld())) {
-            if(tcraft == null || !MathUtils.locationInHitBox(tcraft.getHitBox(), block.getLocation()))
-                continue;
-
-            if (tcraft.getCruising() && !tcraft.isNotProcessing()) {
+            MovecraftLocation mloc = new MovecraftLocation(block.getX(), block.getY(), block.getZ());
+            if (MathUtils.locIsNearCraftFast(tcraft, mloc) && tcraft.getCruising() && !tcraft.isNotProcessing()) {
                 event.setCancelled(true);
-            }
-            else if(tcraft.getType().getBoolProperty(CraftType.MERGE_PISTON_EXTENSIONS)){
-                BitmapHitBox hitBox = new BitmapHitBox();
-                for (Block b : event.getBlocks()) {
-                    Vector dir = event.getDirection().getDirection();
-                    hitBox.add(new MovecraftLocation(b.getX() + dir.getBlockX(), b.getY() + dir.getBlockY(), b.getZ() + dir.getBlockZ()));
-                }
-                tcraft.setHitBox(tcraft.getHitBox().union(hitBox));
                 return;
             }
         }
@@ -205,7 +229,7 @@ public class BlockListener implements Listener {
             if (!MathUtils.locIsNearCraftFast(tcraft, mloc)) {
                 continue;
             }
-            if (Tags.FRAGILE_MATERIALS.contains(event.getBlock().getType())) {
+            if(Tags.FRAGILE_MATERIALS.contains(event.getBlock().getType())) {
                 BlockData m = block.getBlockData();
                 BlockFace face = BlockFace.DOWN;
                 boolean faceAlwaysDown = block.getType() == Material.COMPARATOR || block.getType() == Material.REPEATER;
@@ -234,15 +258,15 @@ public class BlockListener implements Listener {
     }
 
     @EventHandler
-    public void onFlow(BlockFromToEvent e) {
-        if (Settings.DisableSpillProtection)
+    public void onFlow(BlockFromToEvent e){
+        if(Settings.DisableSpillProtection)
             return;
-        if (!e.getBlock().isLiquid())
+        if(!e.getBlock().isLiquid())
             return;
         MovecraftLocation loc = MathUtils.bukkit2MovecraftLoc(e.getBlock().getLocation());
         MovecraftLocation toLoc = MathUtils.bukkit2MovecraftLoc(e.getToBlock().getLocation());
-        for (Craft craft : CraftManager.getInstance().getCraftsInWorld(e.getBlock().getWorld())) {
-            if (craft.getHitBox().contains((loc)) && !craft.getFluidLocations().contains(toLoc)) {
+        for(Craft craft : CraftManager.getInstance().getCraftsInWorld(e.getBlock().getWorld())){
+            if(craft.getHitBox().contains((loc)) && !craft.getFluidLocations().contains(toLoc)) {
                 e.setCancelled(true);
                 break;
             }
@@ -251,15 +275,15 @@ public class BlockListener implements Listener {
 
     @EventHandler
     public void onIceForm(BlockFormEvent e) {
-        if (e.isCancelled() || !Settings.DisableIceForm)
+        if (e.isCancelled() || !Settings.DisableIceForm) {
             return;
-        if (Tags.WATER.contains(e.getBlock().getType()))
+        }
+        if(e.getBlock().getType() != Material.WATER)
             return;
-
         MovecraftLocation loc = MathUtils.bukkit2MovecraftLoc(e.getBlock().getLocation());
-        Craft craft = MathUtils.fastNearestCraftToLoc(CraftManager.getInstance().getCrafts(),
-                e.getBlock().getLocation());
-        if (craft != null && craft.getHitBox().contains((loc)))
+        Craft craft = CraftManager.getInstance().fastNearestCraftToLoc(e.getBlock().getLocation());
+        if (craft != null && craft.getHitBox().contains((loc))) {
             e.setCancelled(true);
+        }
     }
 }

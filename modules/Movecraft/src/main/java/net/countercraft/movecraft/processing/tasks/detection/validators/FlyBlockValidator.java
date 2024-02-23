@@ -19,21 +19,27 @@ import java.util.Map;
 public class FlyBlockValidator implements DetectionPredicate<Map<Material, Deque<MovecraftLocation>>> {
     @Override
     @Contract(pure = true)
-    public @NotNull Result validate(@NotNull Map<Material, Deque<MovecraftLocation>> materialDequeMap,
-                                    @NotNull CraftType type, @NotNull MovecraftWorld world, @Nullable Player player) {
+    public @NotNull Result validate(@NotNull Map<Material, Deque<MovecraftLocation>> materialDequeMap, @NotNull CraftType type, @NotNull MovecraftWorld world, @Nullable Player player) {
         int total = materialDequeMap.values().parallelStream().mapToInt(Deque::size).sum();
+        boolean isNoteCraft = false;
         for (RequiredBlockEntry entry : type.getRequiredBlockProperty(CraftType.FLY_BLOCKS)) {
             int count = 0;
-            for (Material material : entry.getMaterials()) {
-                if (!materialDequeMap.containsKey(material))
+            for(Material material : entry.getMaterials()) {
+                if(!materialDequeMap.containsKey(material)) {
                     continue;
-
+                }
+                if (material == Material.NOTE_BLOCK) {
+                    isNoteCraft = true;
+                    continue;
+                }
                 count += materialDequeMap.get(material).size();
             }
 
             var result = entry.detect(count, total);
-            if (result.getLeft() == RequiredBlockEntry.DetectionResult.SUCCESS)
+            if(result.getLeft() == RequiredBlockEntry.DetectionResult.SUCCESS)
                 continue;
+
+            if (isNoteCraft) return Result.succeed();
 
             String failMessage = "";
             switch (result.getLeft()) {
@@ -46,9 +52,14 @@ public class FlyBlockValidator implements DetectionPredicate<Map<Material, Deque
                 default:
                     break;
             }
-            failMessage += ": [" + entry.materialsToString() + "] " + result.getRight();
+            if (entry.materialsToString().toLowerCase().contains("note_block")) {
+                failMessage += ": [" + "beacon, reactor_block" + "] " + result.getRight();
+            } else {
+                failMessage += ": [" + entry.materialsToString() + "] " + result.getRight();
+            }
             return Result.failWithMessage(failMessage);
         }
         return Result.succeed();
     }
+
 }

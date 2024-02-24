@@ -6,7 +6,6 @@ import net.countercraft.movecraft.MovecraftRotation;
 import net.countercraft.movecraft.WorldHandler;
 import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.util.CollectionUtils;
-import net.countercraft.movecraft.util.NMSBlockUtils;
 import net.countercraft.movecraft.util.MathUtils;
 import net.countercraft.movecraft.util.UnsafeUtils;
 import net.countercraft.movecraft.util.hitboxes.HitBox;

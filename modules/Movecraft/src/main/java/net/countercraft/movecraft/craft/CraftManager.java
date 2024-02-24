@@ -398,7 +398,7 @@ public class CraftManager implements Iterable<Craft>{
         CraftPreSinkEvent event = new CraftPreSinkEvent(craft);
         Bukkit.getServer().getPluginManager().callEvent(event);
         if (event.isCancelled()) {
-            ((BaseCraft)craft).setSinking(failMessage);
+            ((BaseCraft)craft).setSinking(false);
             return craft;
         }
         ((BaseCraft)craft).setSinking(true);

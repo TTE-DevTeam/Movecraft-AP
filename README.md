@@ -2,7 +2,7 @@
 
 ======
 
-![Java CI](https://github.com/APDevTeam/Movecraft/workflows/Java%20CI/badge.svg?branch=main)
+![Java CI](https://github.com/ccorp2002/Movecraft-CommunityEdition/workflows/Java%20CI/badge.svg?branch=main)
 
 
 This is **another** maintained fork of Movecraft, which aims to maintain compatibility with APDev/Mainstream-Movecraft as well as Performance Changes & Fixes, API Upgrades, Ticking/Updating Redstone Components.

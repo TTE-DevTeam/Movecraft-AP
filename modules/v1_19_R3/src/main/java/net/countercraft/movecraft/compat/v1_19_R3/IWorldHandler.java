@@ -278,7 +278,7 @@ public class IWorldHandler extends WorldHandler {
         //*******************************************
         //*      Step six: Process redstone         *
         //*******************************************
-        if (craft.getHitBox().size()>=256000) return;
+        
         if (craft.getAudience() == null) return;
         if (craft.getAudience().equals(audience.console())) return;
         processLight(craft.getHitBox(),craft.getWorld());
@@ -305,8 +305,8 @@ public class IWorldHandler extends WorldHandler {
     }
 
     private void setBlockFast(@NotNull Level world, @NotNull BlockPos position, @NotNull BlockState data) {
-        LevelChunk chunk = world.getChunkIfLoaded(position);
-        if (chunk == null) chunk = world.getChunkAt(position);
+        LevelChunk chunk = world.getChunkAt(position);
+        
         int chunkSection = (position.getY() >> 4) - chunk.getMinSection();
         LevelChunkSection section = chunk.getSections()[chunkSection];
         if (section == null) {
@@ -320,8 +320,8 @@ public class IWorldHandler extends WorldHandler {
         chunk.setUnsaved(true);
     }
     private void setBlockFastest(@NotNull Level world, @NotNull BlockPos position, @NotNull BlockState data) {
-        LevelChunk chunk = world.getChunkIfLoaded(position);
-        if (chunk == null) chunk = world.getChunkAt(position);
+        LevelChunk chunk = world.getChunkAt(position);
+        
         int chunkSection = (position.getY() >> 4) - chunk.getMinSection();
         LevelChunkSection section = chunk.getSections()[chunkSection];
         if (section == null) {
@@ -341,7 +341,7 @@ public class IWorldHandler extends WorldHandler {
     }
     @Nullable
     private BlockState getBlockFastest(@NotNull Level world, @NotNull BlockPos position) {
-        LevelChunk chunk = world.getChunkIfLoaded(position);
+        LevelChunk chunk = world.getChunkAt(position);
         if (chunk == null) {
             chunk = world.getChunkAt(position);
         }
@@ -505,9 +505,7 @@ public class IWorldHandler extends WorldHandler {
               block instanceof ComparatorBlock ||
               block instanceof SculkSensorBlock ||
               block instanceof PistonBaseBlock ||
-              block instanceof MovingPistonBlock ||
-              block instanceof CrafterBlock ||
-              block instanceof CopperBulbBlock;
+              block instanceof MovingPistonBlock;
     }
     private boolean isToggleableRedstoneComponent(Block block) {
       return block instanceof PressurePlateBlock ||

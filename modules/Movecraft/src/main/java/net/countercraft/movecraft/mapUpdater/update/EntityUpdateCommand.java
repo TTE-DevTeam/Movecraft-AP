@@ -21,6 +21,7 @@ import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.World;
 import net.countercraft.movecraft.Movecraft;
+import net.countercraft.movecraft.util.TeleportUtils;
 import net.countercraft.movecraft.MovecraftRotation;
 import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.craft.PlayerCraft;
@@ -123,32 +124,20 @@ public class EntityUpdateCommand extends UpdateCommand {
     @Override
     public void doUpdate() {
         final Location entityLoc = entity.getLocation();
-        final Location destLoc = new Location(world, entityLoc.getX() + x, entityLoc.getY() + y, entityLoc.getZ() + z,yaw + entityLoc.getYaw(),pitch + entityLoc.getPitch());
-        if (entity instanceof Player) {
-            if (sound != null) {
-                ((Player) entity).playSound(destLoc, sound, volume, 1.0f);
-            }
-        }
+        Location destLoc = new Location(world, entityLoc.getX() + x, entityLoc.getY() + y, entityLoc.getZ() + z, yaw + entityLoc.getYaw(), pitch + entityLoc.getPitch());
+        
         if (yaw == 0.0f) {
             destLoc.setYaw(entityLoc.getYaw());
         }
         if (pitch == 0.0f) {
             destLoc.setPitch(entityLoc.getPitch());
         }
-        if (entity.getVehicle() != null) {
-            Entity vehicle = entity.getVehicle();
-            (vehicle).teleport(destLoc,io.papermc.paper.entity.TeleportFlag.EntityState.values());
-        } else {
-            if (entity instanceof Player) {
-                if (((Player)entity).getOpenInventory().getType() != InventoryType.CRAFTING && ((Player)entity).getOpenInventory().getType() != null) {
-                    Movecraft.getInstance().getSmoothTeleport().teleport(((Player) entity), destLoc, yaw, pitch);
-                } else {
-                    (entity).teleport(destLoc,io.papermc.paper.entity.TeleportFlag.Relative.values());
-                }
-            } else {
-                (entity).teleport(destLoc,io.papermc.paper.entity.TeleportFlag.EntityState.values());
+        if (entity instanceof Player) {
+            if (sound != null) {
+                ((Player) entity).playSound(destLoc, sound, volume, 1.0f);
             }
         }
+        TeleportUtils.teleport(entity, destLoc, 0.0f);
     }
 
     @Override

@@ -1,5 +1,7 @@
 ## Movecraft : Community Edition
+
 ======
+
 ![Java CI](https://github.com/APDevTeam/Movecraft/workflows/Java%20CI/badge.svg?branch=main)
 
 

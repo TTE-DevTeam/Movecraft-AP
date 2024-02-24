@@ -6,10 +6,10 @@
     <packaging>pom</packaging>
     <version>${revision}</version>
     <name>Movecraft Parent Pom</name>
-    <url>http://github.com/apdevteam/Movecraft</url>
+    <url>https://github.com/ccorp2002/Movecraft-CommunityEdition/</url>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <revision>8.0.0_beta-2</revision>
+        <revision>CE-Alpha-0</revision>
     </properties>
 
     <modules>

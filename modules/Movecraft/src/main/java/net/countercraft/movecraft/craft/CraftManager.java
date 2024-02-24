@@ -430,32 +430,29 @@ public class CraftManager implements Iterable<Craft>{
             ((BaseCraft)craft).setDataTag("has_fuel",found);
         }
         return found;
-        }
-        public boolean forceCheckFuel(Craft craft, int fuelBurnRate, double percBurnChance, ItemStack fuelItem, ItemStack wasteItem) {
-            if (craft.getSinking())
-                return true;
-            if (craft instanceof SinkingCraftImpl)
-                return true;
-            int chance = 5;
-            if (fuelBurnRate > 0) {
-                //Movecraft.getInstance().getLogger().log(Level.INFO, "FUEL-BURN RNG: "+fuelBurnRate+" FUEL-BURN CHANCE: "+percBurnChance);
-                Block invBlock = null;
-                boolean barrelFound = false;
-                final Set<Block> blocks = new HashSet<>();
-                    blocks.addAll(((BaseCraft)craft).getBlockType(Material.DROPPER));
-                    blocks.addAll(((BaseCraft)craft).getBlockType(Material.FURNACE));
-                if (((BaseCraft)craft).getTrackedMovecraftLocs("fuel_locations").size() > 0) {
-                    blocks.addAll(((BaseCraft)craft).getTrackedBlocks("fuel_locations"));
-                }
-                for (Block b : blocks) {
-                    if (b.getType() == Material.FURNACE) {
-                    InventoryHolder inventoryHolder1 = (InventoryHolder)b.getState();
-                    if((((InventoryHolder)b.getState()).getInventory().getContents()) == null)continue;
-                    ListIterator<ItemStack> listIterator1 = inventoryHolder1.getInventory().iterator();
+    }
+    public boolean forceCheckFuel(Craft craft, int fuelBurnRate, double percBurnChance, ItemStack fuelItem, ItemStack wasteItem) {
+        if (craft.getSinking())
+            return true;
+        if (craft instanceof SinkingCraftImpl)
+            return true;
+        int chance = 5;
+        if (fuelBurnRate > -5) {
+            Block invBlock = null;
+            final Set<Block> blocks = new HashSet<>();
+                blocks.addAll((((BaseCraft)craft)).getBlockType(Material.FURNACE));
+            if (((BaseCraft)craft).getTrackedMovecraftLocs("fuel_locations").size() > 0) {
+                blocks.addAll((((BaseCraft)craft)).getTrackedBlocks("fuel_locations"));
+            }
+            for (Block b : blocks) {
+                if (b.getState() instanceof Container) {
+                    InventoryHolder inventoryHolder = (InventoryHolder)b.getState();
+                    if((((InventoryHolder)b.getState()).getInventory().getContents()) == null) continue;
+                    ListIterator<ItemStack> listIterator1 = inventoryHolder.getInventory().iterator();
                     while (listIterator1.hasNext()) {
                         ItemStack stack = listIterator1.next();
                         invBlock = b;
-                        if (stack != null && (stack.isSimilar(fuelItem)) {
+                        if (stack != null && (stack.isSimilar(fuelItem))) {
                             chance = rand.nextInt((int)percBurnChance+1);
                             if ((int)chance >= (int)percBurnChance - (int)(((int)percBurnChance)-1)) {
                                 int amount = stack.getAmount();
@@ -464,15 +461,16 @@ public class CraftManager implements Iterable<Craft>{
                                 int amount = stack.getAmount();
                                 stack.setAmount(amount - (int)fuelBurnRate);
                                 if (wasteItem.getType() != Material.AIR)
-                                ((World)invBlock.getWorld()).dropItem(invBlock.getLocation(),wasteItem);
+                                (invBlock.getWorld()).dropItem(invBlock.getLocation(),wasteItem);
                             }
                             return true;
                         }
+                    }
                 }
             }
         }
-    return false;
-  }
+        return false;
+    }
 
     @NotNull
     private Set<CraftType> loadCraftTypes() {

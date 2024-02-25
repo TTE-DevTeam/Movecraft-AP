@@ -168,8 +168,7 @@ final public class CraftType {
     public static final NamespacedKey PASSTHROUGH_BLOCKS = buildKey("passthrough_blocks");
     public static final NamespacedKey FORBIDDEN_HOVER_OVER_BLOCKS = buildKey("forbidden_hover_over_blocks");
     public static final NamespacedKey REQUIRED_HOVER_OVER_BLOCKS = buildKey("required_hover_over_blocks");
-    public static final NamespacedKey ALLOW_VERTICAL_TAKEOFF_AND_LANDING = buildKey(
-            "allow_vertical_takeoff_and_landing");
+    public static final NamespacedKey ALLOW_VERTICAL_TAKEOFF_AND_LANDING = buildKey("allow_vertical_takeoff_and_landing");
     public static final NamespacedKey DYNAMIC_LAG_SPEED_FACTOR = buildKey("dynamic_lag_speed_factor");
     public static final NamespacedKey DYNAMIC_LAG_POWER_FACTOR = buildKey("dynamic_lag_power_factor");
     public static final NamespacedKey DYNAMIC_LAG_MIN_SPEED = buildKey("dynamic_lag_min_speed");
@@ -372,6 +371,18 @@ final public class CraftType {
       return getMaterialSetProperty(this.FORBIDDEN_BLOCKS);
     }
 
+    public Set<Material> getDetectionBlocks() {
+      return getMaterialSetProperty(this.DETECTION_BLOCKS);
+    }
+
+    public Set<Material> getMoveBlocks() {
+      return getMaterialSetProperty(this.MOVE_BLOCKS);
+    }
+
+    public Set<Material> getFlyBlocks() {
+      return getMaterialSetProperty(this.FLY_BLOCKS);
+    }
+
     public Collection<String> getForbiddenSignStrings() {
       return (Collection<String>)(getObjectProperty(this.FORBIDDEN_SIGN_STRINGS));
     }
@@ -413,6 +424,7 @@ final public class CraftType {
 
         /* Optional properties */
         registerProperty(new RequiredBlockProperty("flyblocks", FLY_BLOCKS, type -> new HashSet<>()));
+        registerProperty(new RequiredBlockProperty("detectionblocks", DETECTION_BLOCKS, type -> new HashSet<>()));
         registerProperty(new ObjectPropertyImpl("forbiddenSignStrings", FORBIDDEN_SIGN_STRINGS,
                 (data, type, fileKey, namespacedKey) -> data.getStringListOrEmpty(fileKey).stream().map(
                         String::toLowerCase).collect(Collectors.toSet()),

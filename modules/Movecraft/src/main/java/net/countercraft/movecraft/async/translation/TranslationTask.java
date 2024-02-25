@@ -434,7 +434,7 @@ public class TranslationTask extends AsyncTask {
             for (Entity entity : nearEntites) {
                 if (entity == null)
                     continue;
-                if (entity.getType() != EntityType.PLAYER && entity.getType() != EntityType.FIREWORK && entity.getType() != EntityType.PRIMED_TNT && entity.getType() != EntityType.ARROW) {
+                if (entity.getType() != EntityType.FIREWORK && entity.getType() != EntityType.ARROW) {
                     if ((((BaseCraft)craft).getPassengers().contains(entity) == false)) {
                         if (entity.getType().toString().contains("Display")) {
                             if (!(craft.getHitBox().contains(MathUtils.bukkit2MovecraftLoc(entity.getLocation())))) {

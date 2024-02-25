@@ -218,7 +218,7 @@ public class RotationTask extends AsyncTask {
                   for (Entity entity : nearEntites) {
                       if (entity == null)
                         continue;
-                      if (entity.getType() != EntityType.PLAYER && entity.getType() != EntityType.FIREWORK && entity.getType() != EntityType.PRIMED_TNT && entity.getType() != EntityType.ARROW) {
+                      if (entity.getType() != EntityType.FIREWORK && entity.getType() != EntityType.ARROW) {
                         if (entity.getType().toString().contains("Display")) {
                             if (!(craft.getHitBox().contains(MathUtils.bukkit2MovecraftLoc(entity.getLocation())))) {
                                 ((BaseCraft)craft).removePassenger(entity);
@@ -301,7 +301,7 @@ public class RotationTask extends AsyncTask {
                   for (Entity entity : nearEntites) {
                       if (entity == null)
                         continue;
-                      if (entity.getType() != EntityType.PLAYER && entity.getType() != EntityType.FIREWORK && entity.getType() != EntityType.PRIMED_TNT && entity.getType() != EntityType.ARROW) {
+                      if (entity.getType() != EntityType.PLAYER && entity.getType() != EntityType.FIREWORK && entity.getType() != EntityType.ARROW) {
                         if (entity.getType().toString().contains("Display")) {
                             if (!(craft.getHitBox().contains(MathUtils.bukkit2MovecraftLoc(entity.getLocation())))) {
                                 ((BaseCraft)craft).removePassenger(entity);
@@ -337,7 +337,7 @@ public class RotationTask extends AsyncTask {
                               }
                           }
                       }
-                      if (((entity.getType() == EntityType.PLAYER || entity.getType() == EntityType.PRIMED_TNT) && !craft.getSinking()) || !craft.getType().getBoolProperty(CraftType.ONLY_MOVE_PLAYERS) || ((BaseCraft)craft).getPassengers().contains(entity)) {
+                      if (((entity.getType() == EntityType.PRIMED_TNT) && !craft.getSinking()) || !craft.getType().getBoolProperty(CraftType.ONLY_MOVE_PLAYERS) || ((BaseCraft)craft).getPassengers().contains(entity)) {
                           // Player is onboard this craft
                           if (!MathUtils.locationNearHitBox(craft.getHitBox(),entity.getLocation(),3.5)) {
                             if (!MathUtils.locationNearHitBox(craft.getHitBox().boundingHitBox(),entity.getLocation(),3.5)) {

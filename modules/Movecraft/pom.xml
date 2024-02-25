@@ -166,7 +166,7 @@
                                     </includes>
                                 </filter>
                                 <filter>
-                                    <artifact>net.countercraft:movecraft-v1_20_R3</artifact>
+                                    <artifact>net.countercraft:movecraft-v1_20_r3</artifact>
                                     <includes>
                                         <include>**</include>
                                     </includes>

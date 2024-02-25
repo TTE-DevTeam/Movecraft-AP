@@ -66,34 +66,14 @@ public class PilotCommand implements TabExecutor {
 
         if (args.length == 1) {
             final Craft pCraft = CraftManager.getInstance().getCraftByPlayerName(player.getName());
-
-            if (pCraft == null) {
-                player.sendMessage(MOVECRAFT_COMMAND_PREFIX + I18nSupport.getInternationalisedString("Player- Error - You do not have a craft to release!"));
+            if (pCraft != null) {
+                player.sendMessage(MOVECRAFT_COMMAND_PREFIX + "Releasing previous Craft");
+                CraftManager.getInstance().forceRemoveCraft(pCraft);
             } else {
-                CraftManager.getInstance().removeCraft(pCraft, CraftReleaseEvent.Reason.PLAYER);
+                CraftManager.getInstance().forcePilot(craftType, player.getLocation().getBlock(), player);
             }
         }
-        CraftManager.getInstance().detect(
-                startPoint,
-                craftType, (type, w, p, parents) -> {
-                    assert p != null; // Note: This only passes in a non-null player.
-                    if (parents.size() > 0)
-                        return new Pair<>(Result.failWithMessage(I18nSupport.getInternationalisedString(
-                                "Detection - Failed - Already commanding a craft")), null);
-
-                    return new Pair<>(Result.succeed(),
-                            new PlayerCraftImpl(type, w, p));
-                },
-                world, player,
-                Movecraft.getAdventure().player(player),
-                craft -> () -> {
-                    // Release old craft if it exists
-                    Craft oldCraft = CraftManager.getInstance().getCraftByPlayer(player);
-                    if(oldCraft != null)
-                        CraftManager.getInstance().removeCraft(oldCraft, CraftReleaseEvent.Reason.PLAYER);
-                }
-        );
-       return true;
+        return true;
     }
 
     @Override

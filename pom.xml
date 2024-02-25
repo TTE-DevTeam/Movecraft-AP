@@ -9,7 +9,7 @@
     <url>https://github.com/ccorp2002/Movecraft-CommunityEdition/</url>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <revision>CE-0.0.3A</revision>
+        <revision>CE-0.0.4A</revision>
     </properties>
 
     <modules>

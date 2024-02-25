@@ -77,7 +77,7 @@
     </dependencies>
 
     <build>
-        <finalName>Movecraft</finalName>
+        <finalName>Movecraft_${revision}</finalName>
         <directory>../../target</directory>
         <sourceDirectory>src/main/java</sourceDirectory>
         <resources>

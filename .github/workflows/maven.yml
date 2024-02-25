@@ -134,9 +134,9 @@ jobs:
         run: mvn -T 1C -B package --file pom.xml
 
       - name: Stage jar
-        run: mkdir staging && cp target/Movecraft_CE.jar staging && mv staging/Movecraft_CE.jar staging/Movecraft_CE_$GITHUB_SHA.jar
+        run: mkdir staging && cp target/Movecraft_CE.jar staging && mv staging/Movecraft_CE.jar staging/Movecraft_CE-$GITHUB_SHA.jar
       - name: Upload jar
         uses: actions/upload-artifact@v3
         with:
           name: Movecraft_Dev-Build
-          path: staging/Movecraft_CE.jar
+          path: staging/Movecraft_CE-$GITHUB_SHA.jar

@@ -173,7 +173,7 @@ public class PlayerListener implements Listener {
         for (Block block : craft.getBlockName("SIGN")) {
           Sign sign = (Sign)block.getState();
           try {
-            sign.setWaxed(false);
+            sign.setEditable(true);
             sign.update(true,false);
           } catch (Exception exc) {}
         }
@@ -192,7 +192,7 @@ public class PlayerListener implements Listener {
           for (Block block : craft.getBlockName("SIGN")) {
             Sign sign = (Sign)block.getState();
             try {
-              sign.setWaxed(true);
+              sign.setEditable(false);
               sign.update(true,false);
             } catch (Exception exc) {}
           }

@@ -18,7 +18,7 @@ public class Tags {
     public static final EnumSet<Material> FLUID = EnumSet.of(Material.WATER, Material.LAVA, Material.BUBBLE_COLUMN, Material.SEAGRASS, Material.TALL_SEAGRASS, Material.KELP, Material.KELP_PLANT, Material.SEA_PICKLE);
     public static final EnumSet<Material> CHESTS = EnumSet.of(Material.CHEST, Material.TRAPPED_CHEST, Material.BARREL);
     public static final EnumSet<Material> FURNACES = EnumSet.of(Material.FURNACE, Material.BLAST_FURNACE, Material.SMOKER);
-    public static final EnumSet<Material> SINKING_PASSTHROUGH = EnumSet.of(Material.TALL_GRASS, Material.GRASS);
+    public static final EnumSet<Material> SINKING_PASSTHROUGH = EnumSet.of(Material.TALL_GRASS, Material.LEGACY_GRASS);
     public static final EnumSet<Material> FRAGILE_MATERIALS = EnumSet.noneOf(Material.class);
     public static final EnumSet<Material> FALL_THROUGH_BLOCKS = EnumSet.noneOf(Material.class);
     public static final EnumSet<Material> BUCKETS = EnumSet.of(Material.LAVA_BUCKET, Material.WATER_BUCKET, Material.MILK_BUCKET, Material.COD_BUCKET, Material.PUFFERFISH_BUCKET, Material.SALMON_BUCKET, Material.TROPICAL_FISH_BUCKET);
@@ -37,6 +37,13 @@ public class Tags {
         FALL_THROUGH_BLOCKS.add(Material.AIR);
         FALL_THROUGH_BLOCKS.add(Material.WATER);
         FALL_THROUGH_BLOCKS.add(Material.LAVA);
+
+        for (Material m : Material.values()) {
+            if (!m.isAir())
+                continue;
+
+            FALL_THROUGH_BLOCKS.add(m);
+        }
         FALL_THROUGH_BLOCKS.add(Material.DEAD_BUSH);
         FALL_THROUGH_BLOCKS.addAll(Tag.CORAL_PLANTS.getValues());
         FALL_THROUGH_BLOCKS.add(Material.BROWN_MUSHROOM);
@@ -52,6 +59,7 @@ public class Tags {
         FALL_THROUGH_BLOCKS.add(Material.CARROT);
         FALL_THROUGH_BLOCKS.add(Material.POTATO);
         FALL_THROUGH_BLOCKS.addAll(Tag.FENCES.getValues());
+        FALL_THROUGH_BLOCKS.addAll(FLUID);
     }
 
     @Nullable

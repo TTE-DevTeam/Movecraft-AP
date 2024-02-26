@@ -21,10 +21,18 @@ ExtraFadeTimePerBlock: # List of blocks that will take longer time to fade
   DISPENSER: 600
   DROPPER: 600
   FURNACE: 600
+  BARREL: 600
 CollisionPrimer: 1000
 ForbiddenRemoteSigns: # These strings will be ignored when searching for signs to trigger from a remote sign
-  - "Mounted"
-  - "Denied"
-  - "[private]"
-CompatibilityMode: false
+  - Mounted
+  - Denied
+  - '[private]'
+  - 'Pilot:'
+  - Teleport
+  - Remote Sign
+CompatibilityMode: false # Coming soon :tm:
 GeneratedDatapack: false # Set to false to re-generate datapack on startup
+CraftsUseNetherPortals: false
+ForbiddenRemoteSigns:
+lockPilotAtDirectControl: true
+GearshiftsWithPilotToolEnabled: true

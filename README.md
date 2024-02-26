@@ -1,5 +1,7 @@
-**Movecraft : Community Edition requires at least**
-## *Java 17+ & Minecraft 1.19.4/1.20.4*
+# **Movecraft : Community Edition**
+
+## Requires at least *Java 17+ & Minecraft 1.19.4/1.20.4*.
+# **MUST** be using a Paper/Paper Fork (so like Purpur or something), We're ditching SpigotMC support with this one...
 
 **New Mechanic-Features/Changes:**
  

@@ -1,14 +1,36 @@
-## Movecraft : Community Edition
+**Movecraft : Community Edition requires at least**
+## *Java 17+ & Minecraft 1.19.4/1.20.4*
 
-======
+**New Mechanic-Features/Changes:**
+ 
+- Fixes the creation of holes in the Water made by recently piloted & moving Ships.
+- Redstone-Block Updates on moving crafts.
+- Delayed the expensive (Both Server- and  Client-side) Lighting Updates, by 200 In-game Ticks (~12s?), post movement. Should help with Player's FPS on large ships and makes Craft Movement visually smoother.
+
+- Improved how movecraft goes about block-setting and sending the changes to nearby players.
+- Added back WASD Direct Control, use `/dc` to toggle it.
+
+- Changes to how Fuel Items are burnt; Fuel may burn faster or slower compared to APDev/Mainstream Movecraft. 
+
+- New Total Blockcount Craft-HP Actionbar, displays the amount of Remaining blocks aboard the craft, over the amount of initial blocks. (Non-Air Blocks, in particular)
+
+**API Changes:**
+- TrackedLocations, used internally for various things, such as tracking Interior Air-Blocks aboard ships (Helps with mitigating the holes in the water), or keeping track of Fuel-Block Locations.
+- Craft DataTags, Allow you to store arbitrary data "aboard" a BaseCraft-Object. Is cleared upon the craft Releasing. Used for storing current Fly-Block & Move-Block count.
+- The previously mentioned fuel item-changes, now allow you to register custom fuels via the CraftManager-API.
+- SpeedModifier (SpeedMod) API, allowing developers to dynamically increase or decrease the speed of a given BaseCraft-Object.
+  - Positive Numbers Decrease Speed/Increase delay of Movements; Negative Numbers do the opposite.
+
+### Many *many* more changes, read the code to get a better idea...
+
+
+
+
 
 [![Movecraft : Java CI](https://github.com/ccorp2002/Movecraft-CommunityEdition/actions/workflows/maven.yml/badge.svg?branch=community-main)](https://github.com/ccorp2002/Movecraft-CommunityEdition/actions/workflows/maven.yml)
 
 
 This is **another** maintained fork of Movecraft, which aims to maintain compatibility with APDev/Mainstream-Movecraft as well as Performance Changes & Fixes, API Upgrades, Ticking/Updating Redstone Components.
-
-**Movecraft : Community Edition requires at least**
-## *Java 17 and MC-1.19.4*
 
 ## Download
 

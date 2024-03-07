@@ -588,11 +588,12 @@ public abstract class BaseCraft implements Craft {
                 detectionMultiplier = (double) contact.getType().getPerWorldProperty(CraftType.PER_WORLD_UNDERWATER_DETECTION_MULTIPLIER, contact.getWorld());
             int detectionRange = (int) (contact.getOrigBlockCount() * detectionMultiplier);
             detectionRange = detectionRange * 10;
-            if (distsquared > detectionRange || contact.getNotificationPlayer() == getNotificationPlayer()) {
+            if (distsquared > detectionRange || contact.getNotificationPlayer().equals(getNotificationPlayer())) {
                 continue;
             }
             contacts.add(contact);
         }
+        contacts.remove(this);
         return contacts;
     }
 

@@ -170,6 +170,18 @@ public class PlayerListener implements Listener {
         Craft crft = e.getCraft();
         if (crft instanceof BaseCraft) {
           BaseCraft craft = (BaseCraft)crft;
+          if (craft.getOrigBlockCount() < 1000000) {
+            for (Block block : craft.getBlockName("SIGN")) {
+              Sign sign = (Sign)block.getState();
+              if (ChatColor.stripColor(sign.getLine(0)).equalsIgnoreCase(craft.getType().getName())) continue;
+              if (ChatColor.stripColor(sign.getLine(0)).equalsIgnoreCase("pilot:")) continue;
+              if (ChatColor.stripColor(sign.getLine(0)).equalsIgnoreCase("[private]")) continue;
+              try {
+                sign.setEditable(true);
+                sign.update(true,false);
+              } catch (Exception exc) {}
+            }
+          }
           craft.getRawTrackedMap().clear();
           craft.getCraftTags().clear();
         }
@@ -190,7 +202,7 @@ public class PlayerListener implements Listener {
             for (Block block : craft.getBlockName("SIGN")) {
               Sign sign = (Sign)block.getState();
               try {
-                sign.setWaxed(true);
+                sign.setEditable(false);
                 sign.update(true,false);
               } catch (Exception exc) {}
             }

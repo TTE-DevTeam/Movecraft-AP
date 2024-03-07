@@ -17,7 +17,7 @@ import java.util.Set;
 /**
  * Code derived from code taken with permission from MicleBrick
  * https://www.spigotmc.org/threads/teleport-player-smoothly.317416/
- * Used for 1.20.4
+ * Used for 1.20.2
  */
 public class ISmoothTeleport extends SmoothTeleport {
     private final Field teleportPosField;
@@ -48,7 +48,7 @@ public class ISmoothTeleport extends SmoothTeleport {
             teleportAwaitField.setInt(connection, teleportAwait);
             awaitingTeleportTimeField.set(connection, tickCountField.get(connection));
 
-            ClientboundPlayerPositionPacket packet = new ClientboundPlayerPositionPacket(x, y, z, yawChange, pitchChange, Set.of(RelativeMovement.X_ROT, RelativeMovement.Y_ROT), teleportAwait);
+            ClientboundPlayerPositionPacket packet = new ClientboundPlayerPositionPacket(x, y, z, yawChange, 0, Set.of(RelativeMovement.X_ROT, RelativeMovement.Y_ROT), teleportAwait);
             connection.send(packet);
         } catch (IllegalAccessException e) {
             e.printStackTrace();

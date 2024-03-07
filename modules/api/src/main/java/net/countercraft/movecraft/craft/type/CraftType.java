@@ -469,7 +469,7 @@ final public class CraftType {
         registerProperty(new BooleanProperty("halfSpeedUnderwater", HALF_SPEED_UNDERWATER, type -> false));
         registerProperty(new BooleanProperty("focusedExplosion", FOCUSED_EXPLOSION, type -> false));
         registerProperty(new BooleanProperty("mustBeSubcraft", MUST_BE_SUBCRAFT, type -> false));
-        registerProperty(new IntegerProperty("staticWaterLevel", STATIC_WATER_LEVEL, type -> -128));
+        registerProperty(new IntegerProperty("staticWaterLevel", STATIC_WATER_LEVEL, type -> -64));
         registerProperty(new DoubleProperty("fuelBurnRate", FUEL_BURN_RATE, type -> 0D));
         registerProperty(new PerWorldProperty<>("perWorldFuelBurnRate", PER_WORLD_FUEL_BURN_RATE,
                 (type, worldName) -> type.getDoubleProperty(FUEL_BURN_RATE)));

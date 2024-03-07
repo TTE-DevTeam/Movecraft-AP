@@ -37,7 +37,7 @@ public class CommandUtils {
     public static void runSetBlock(World world, Location loc, String blockId){
         boolean val = false;
         System.out.println("SetBlock ID: "+blockId);
-        CommandMinecart cart = (CommandMinecart)world.spawnEntity(new Location(world, 0, -128, 0), EntityType.MINECART_COMMAND);
+        CommandMinecart cart = (CommandMinecart)world.spawnEntity(new Location(world, 0, -64, 0), EntityType.MINECART_COMMAND);
         cart.setCustomName("Movecraft");
         Bukkit.dispatchCommand(cart, "execute as "+cart.getUniqueId().toString()+" run setBlock "+loc.getBlockX()+" "+loc.getBlockY()+" "+loc.getBlockZ()+" "+blockId);
         cart.remove();

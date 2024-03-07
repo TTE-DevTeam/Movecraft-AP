@@ -31,6 +31,7 @@ import net.countercraft.movecraft.craft.CraftStatus;
 import net.countercraft.movecraft.craft.PilotedCraft;
 import net.countercraft.movecraft.craft.PlayerCraft;
 import net.countercraft.movecraft.craft.BaseCraft;
+import net.countercraft.movecraft.craft.SinkingCraftImpl;
 import net.countercraft.movecraft.craft.SinkingCraft;
 import net.countercraft.movecraft.craft.type.CraftType;
 import net.countercraft.movecraft.craft.type.RequiredBlockEntry;
@@ -332,7 +333,8 @@ public class AsyncManager extends BukkitRunnable {
     }
 
     private void detectSinking(){
-        for(Craft craft : CraftManager.getInstance()) {
+        List<Craft> crafts = Lists.newArrayList(CraftManager.getInstance().getCraftList());
+        for(Craft craft : crafts) {
             if (craft.getSinking())
                 continue;
             if (craft.getType().getDoubleProperty(CraftType.SINK_PERCENT) < 0.0 || !craft.isNotProcessing())
@@ -357,9 +359,7 @@ public class AsyncManager extends BukkitRunnable {
             if (status.isSinking()) {
                 craft.getAudience().sendMessage(I18nSupport.getInternationalisedComponent("Player - Craft is sinking"));
                 craft.setCruising(false);
-                craft.setAudience(Movecraft.getAdventure().console());
                 craft.setSinking(true);
-                Bukkit.getPluginManager().callEvent(new CraftSinkEvent(craft));
             } else {
                 craft.setLastBlockCheck(System.currentTimeMillis());
             }
@@ -371,7 +371,7 @@ public class AsyncManager extends BukkitRunnable {
         //copy the crafts before iteration to prevent concurrent modifications
         List<Craft> crafts = Lists.newArrayList(CraftManager.getInstance().getCraftList());
         for (final Craft craft : crafts) {
-            if (!craft.getSinking()) continue;
+            if (!craft.getSinking() && !(craft instanceof SinkingCraft)) continue;
             if (craft.getHitBox().isEmpty() || craft.getHitBox().getMinY() < craft.getWorld().getMinHeight()+10 || craft.getHitBox().getMinY() <= craft.getType().getIntProperty(CraftType.MIN_HEIGHT_LIMIT)) {
                 CraftManager.getInstance().release(craft, CraftReleaseEvent.Reason.SUNK, false);
                 continue;
@@ -690,17 +690,17 @@ public class AsyncManager extends BukkitRunnable {
                     if (overall_sink_percent > 0d) {
                         if ((double)current_overall_size < ((double)origin_overall_size)*((double)overall_sink_percent)) {
                             try {
-                                if (bcraft.getNotificationPlayer() != null) bcraft.getNotificationPlayer().sendActionBar(ChatColor.RESET+"[ "+ChatColor.DARK_RED+current_overall_size+ChatColor.RESET+" / "+ChatColor.RED+ChatColor.BOLD+origin_overall_size+ChatColor.RESET+" ]");
+                                if (bcraft.getNotificationPlayer() != null) bcraft.getNotificationPlayer().sendActionBar(ChatColor.RED+"BLOCKS :"+ChatColor.RESET+"[ "+ChatColor.DARK_RED+current_overall_size+ChatColor.RESET+" / "+ChatColor.RED+ChatColor.BOLD+origin_overall_size+ChatColor.RESET+" ]");
                             } catch (Exception exc) {}
                             isSinking = true;
                         } else {
                             try {
-                                if (bcraft.getNotificationPlayer() != null) bcraft.getNotificationPlayer().sendActionBar(ChatColor.RESET+"[ "+ChatColor.DARK_AQUA+current_overall_size+ChatColor.RESET+" / "+ChatColor.AQUA+ChatColor.BOLD+origin_overall_size+ChatColor.RESET+" ]");
+                            if (bcraft.getNotificationPlayer() != null) bcraft.getNotificationPlayer().sendActionBar(ChatColor.AQUA+"BLOCKS :"+ChatColor.RESET+"[ "+ChatColor.DARK_AQUA+current_overall_size+ChatColor.RESET+" / "+ChatColor.AQUA+ChatColor.BOLD+origin_overall_size+ChatColor.RESET+" ]");
                             } catch (Exception exc) {}
                         }
                     } else {
                         try {
-                            if (bcraft.getNotificationPlayer() != null) bcraft.getNotificationPlayer().sendActionBar(ChatColor.RESET+"[ "+ChatColor.DARK_AQUA+current_overall_size+ChatColor.RESET+" / "+ChatColor.AQUA+ChatColor.BOLD+origin_overall_size+ChatColor.RESET+" ]");
+                            if (bcraft.getNotificationPlayer() != null) bcraft.getNotificationPlayer().sendActionBar(ChatColor.AQUA+"BLOCKS :"+ChatColor.RESET+"[ "+ChatColor.DARK_AQUA+current_overall_size+ChatColor.RESET+" / "+ChatColor.AQUA+ChatColor.BOLD+origin_overall_size+ChatColor.RESET+" ]");
                         } catch (Exception exc) {}
                     }
                 }

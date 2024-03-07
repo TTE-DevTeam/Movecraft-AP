@@ -99,126 +99,122 @@ public class CraftTranslateCommand extends UpdateCommand {
         World oldWorld = craft.getWorld();
         final Set<Material> passthroughBlocks = new HashSet<>(
                 craft.getType().getMaterialSetProperty(CraftType.PASSTHROUGH_BLOCKS));
-        int waterline = -128;
+        int waterline = -64;
         final WorldHandler handler = Movecraft.getInstance().getWorldHandler();
-        if (craft instanceof SinkingCraft) {
+        if (craft.getSinking()) {
             passthroughBlocks.addAll(Tags.FLUID);
             passthroughBlocks.addAll(Tag.LEAVES.getValues());
             passthroughBlocks.addAll(Tags.SINKING_PASSTHROUGH);
         }
-        if (!craft.getSinking()) {
-            waterline = craft.getWaterLine();
-            final SetHitBox originalLocations = new SetHitBox();
-            for (MovecraftLocation movecraftLocation : craft.getHitBox()) {
-                originalLocations.add(movecraftLocation.subtract(displacement));
+        if (!craft.getSinking()) waterline = craft.getWaterLine();
+        final SetHitBox originalLocations = new SetHitBox();
+        for (MovecraftLocation movecraftLocation : craft.getHitBox()) {
+            originalLocations.add(movecraftLocation.subtract(displacement));
+        }
+        final Set<MovecraftLocation> to = Sets.difference(craft.getHitBox().asSet(), originalLocations.asSet());
+        //place phased blocks
+        for (MovecraftLocation location : to) {
+            if (passthroughBlocks.contains(location.toBukkit(world).getBlock().getType())) {
+                var data = location.toBukkit(world).getBlock().getBlockData();
+                craft.getPhaseBlocks().put(location.toBukkit(world), data);
             }
-            final Set<MovecraftLocation> to = Sets.difference(craft.getHitBox().asSet(), originalLocations.asSet());
-            //place phased blocks
-            for (MovecraftLocation location : to) {
-                if (passthroughBlocks.contains(location.toBukkit(world).getBlock().getType())) {
-                    var data = location.toBukkit(world).getBlock().getBlockData();
-                    craft.getPhaseBlocks().put(location.toBukkit(world), data);
-                }
-            }
-            //The subtraction of the set of coordinates in the HitBox cube and the HitBox itself
+        }
+        //The subtraction of the set of coordinates in the HitBox cube and the HitBox itself
 
-            //Check to see which locations in the from set are actually outside of the craft
-            final Set<MovecraftLocation> failed = new HashSet<>();
-            final Set<MovecraftLocation> airLocs = new HashSet<>();
-            if (craft instanceof BaseCraft) {
-                airLocs.addAll(((BaseCraft)craft).getTrackedMovecraftLocs("air"));
-            }
-            final Set<MovecraftLocation> confirmed = new HashSet<>(CraftManager.getInstance().detectCraftExterior(craft).asSet());
-            if (craft instanceof BaseCraft) {
-                if (((BaseCraft)craft).getTrackedLocations("external_locs").size() <= 0) {
-                    final var invertedHitBox = Sets.difference(
-                            craft.getHitBox().boundingHitBox().asSet(), craft.getHitBox().asSet());
-                    (failed).addAll(Sets.difference(invertedHitBox, confirmed));
-                    ((BaseCraft)craft).setTrackedMovecraftLocs("external_locs",failed);
-                } else {
-                    failed.addAll(((BaseCraft)craft).getTrackedMovecraftLocs("external_locs"));
-                }
-            } else {
+        //Check to see which locations in the from set are actually outside of the craft
+        final Set<MovecraftLocation> failed = new HashSet<>();
+        final Set<MovecraftLocation> airLocs = new HashSet<>();
+        if (craft instanceof BaseCraft) {
+            airLocs.addAll(((BaseCraft)craft).getTrackedMovecraftLocs("air"));
+        }
+        final Set<MovecraftLocation> confirmed = new HashSet<>(CraftManager.getInstance().detectCraftExterior(craft).asSet());
+        if (craft instanceof BaseCraft) {
+            if (((BaseCraft)craft).getTrackedLocations("external_locs").size() <= 0) {
                 final var invertedHitBox = Sets.difference(
                         craft.getHitBox().boundingHitBox().asSet(), craft.getHitBox().asSet());
-
-                //place phased blocks
-                final Set<Location> overlap = new HashSet<>(craft.getPhaseBlocks().keySet());
-                overlap.removeIf((location -> !craft.getHitBox().contains(MathUtils.bukkit2MovecraftLoc(location))));
-                final int minX = craft.getHitBox().getMinX();
-                final int maxX = craft.getHitBox().getMaxX();
-                final int minY = craft.getHitBox().getMinY();
-                final int maxY = overlap.isEmpty() ? craft.getHitBox().getMaxY() : Collections.max(overlap,
-                        Comparator.comparingInt(Location::getBlockY)).getBlockY();
-                final int minZ = craft.getHitBox().getMinZ();
-                final int maxZ = craft.getHitBox().getMaxZ();
-                final HitBox[] surfaces = {
-                        new SolidHitBox(new MovecraftLocation(minX, minY, minZ), new MovecraftLocation(minX, maxY, maxZ)),
-                        new SolidHitBox(new MovecraftLocation(minX, minY, minZ), new MovecraftLocation(maxX, maxY, minZ)),
-                        new SolidHitBox(new MovecraftLocation(maxX, minY, maxZ), new MovecraftLocation(minX, maxY, maxZ)),
-                        new SolidHitBox(new MovecraftLocation(maxX, minY, maxZ), new MovecraftLocation(maxX, maxY, minZ)),
-                        new SolidHitBox(new MovecraftLocation(minX, minY, minZ), new MovecraftLocation(maxX, minY, maxZ))
-                };
-                final SetHitBox validExterior = new SetHitBox();
-                for (HitBox hitBox : surfaces) {
-                    validExterior.addAll(Sets.difference(hitBox.asSet(),craft.getHitBox().asSet()));
-                }
-
-                //A set of locations that are confirmed to be "exterior" locations
                 (failed).addAll(Sets.difference(invertedHitBox, confirmed));
-                for (MovecraftLocation location : failed) {
-                    if (location.getY() <= waterline) {
-                        craft.getPhaseBlocks().put(location.toBukkit(oldWorld), Movecraft.getInstance().getWaterBlockData());
-                    }
-                    if (!passthroughBlocks.contains(location.toBukkit(world).getBlock().getType()))
-                        continue;
-                    var data = location.toBukkit(world).getBlock().getBlockData();
-                    craft.getPhaseBlocks().put(location.toBukkit(world), data);
-                }
+                ((BaseCraft)craft).setTrackedMovecraftLocs("external_locs",failed);
+            } else {
+                failed.addAll(((BaseCraft)craft).getTrackedMovecraftLocs("external_locs"));
             }
-            //translate the craft
-            handler.translateCraft(craft, displacement, world);
-            craft.setWorld(world);
-            //trigger sign events
-            sendSignEvents();
-            for (MovecraftLocation l : failed){
-                MovecraftLocation orig = l.subtract(displacement);
-                if (craft.getHitBox().contains(orig) || failed.contains(orig)){
-                    continue;
-                }
-                if (airLocs.contains(orig)) continue;
-                confirmed.add(orig);
-            }
-            //place confirmed blocks if they have been un-phased
-            for (MovecraftLocation location : confirmed) {
-                Location bukkit = location.toBukkit(craft.getWorld());
-                if (!craft.getPhaseBlocks().containsKey(bukkit))
-                    continue;
+        } else {
+            final var invertedHitBox = Sets.difference(
+                    craft.getHitBox().boundingHitBox().asSet(), craft.getHitBox().asSet());
 
-                //Do not place if it is at a collapsed HitBox location
-                if (!craft.getCollapsedHitBox().isEmpty() && craft.getCollapsedHitBox().contains(location))
+            //place phased blocks
+            final Set<Location> overlap = new HashSet<>(craft.getPhaseBlocks().keySet());
+            overlap.removeIf((location -> !craft.getHitBox().contains(MathUtils.bukkit2MovecraftLoc(location))));
+            final int minX = craft.getHitBox().getMinX();
+            final int maxX = craft.getHitBox().getMaxX();
+            final int minY = craft.getHitBox().getMinY();
+            final int maxY = overlap.isEmpty() ? craft.getHitBox().getMaxY() : Collections.max(overlap,
+                    Comparator.comparingInt(Location::getBlockY)).getBlockY();
+            final int minZ = craft.getHitBox().getMinZ();
+            final int maxZ = craft.getHitBox().getMaxZ();
+            final HitBox[] surfaces = {
+                    new SolidHitBox(new MovecraftLocation(minX, minY, minZ), new MovecraftLocation(minX, maxY, maxZ)),
+                    new SolidHitBox(new MovecraftLocation(minX, minY, minZ), new MovecraftLocation(maxX, maxY, minZ)),
+                    new SolidHitBox(new MovecraftLocation(maxX, minY, maxZ), new MovecraftLocation(minX, maxY, maxZ)),
+                    new SolidHitBox(new MovecraftLocation(maxX, minY, maxZ), new MovecraftLocation(maxX, maxY, minZ)),
+                    new SolidHitBox(new MovecraftLocation(minX, minY, minZ), new MovecraftLocation(maxX, minY, maxZ))
+            };
+            final SetHitBox validExterior = new SetHitBox();
+            for (HitBox hitBox : surfaces) {
+                validExterior.addAll(Sets.difference(hitBox.asSet(),craft.getHitBox().asSet()));
+            }
+
+            //A set of locations that are confirmed to be "exterior" locations
+            (failed).addAll(Sets.difference(invertedHitBox, confirmed));
+            for (MovecraftLocation location : failed) {
+                if (location.getY() <= waterline) {
+                    craft.getPhaseBlocks().put(location.toBukkit(oldWorld), Movecraft.getInstance().getWaterBlockData());
+                }
+                if (!passthroughBlocks.contains(location.toBukkit(world).getBlock().getType()))
                     continue;
+                var data = location.toBukkit(world).getBlock().getBlockData();
+                craft.getPhaseBlocks().put(location.toBukkit(world), data);
+            }
+        }
+        //translate the craft
+        handler.translateCraft(craft, displacement, world);
+        craft.setWorld(world);
+        //trigger sign events
+        sendSignEvents();
+        for (MovecraftLocation l : failed){
+            MovecraftLocation orig = l.subtract(displacement);
+            if (craft.getHitBox().contains(orig) || failed.contains(orig)){
+                continue;
+            }
+            if (airLocs.contains(orig)) continue;
+            confirmed.add(orig);
+        }
+        //place confirmed blocks if they have been un-phased
+        for (MovecraftLocation location : confirmed) {
+            Location bukkit = location.toBukkit(craft.getWorld());
+            if (!craft.getPhaseBlocks().containsKey(bukkit))
+                continue;
+
+            //Do not place if it is at a collapsed HitBox location
+            if (!craft.getCollapsedHitBox().isEmpty() && craft.getCollapsedHitBox().contains(location))
+                continue;
+            var phaseBlock = craft.getPhaseBlocks().remove(bukkit);
+            handler.setBlockFast(bukkit, phaseBlock);
+        }
+
+        for (MovecraftLocation location : originalLocations) {
+            Location bukkit = location.toBukkit(oldWorld);
+            if(!craft.getHitBox().contains(location) && craft.getPhaseBlocks().containsKey(bukkit)){
                 var phaseBlock = craft.getPhaseBlocks().remove(bukkit);
                 handler.setBlockFast(bukkit, phaseBlock);
             }
-
-            for (MovecraftLocation location : originalLocations) {
-                Location bukkit = location.toBukkit(oldWorld);
-                if(!craft.getHitBox().contains(location) && craft.getPhaseBlocks().containsKey(bukkit)){
-                    var phaseBlock = craft.getPhaseBlocks().remove(bukkit);
-                    handler.setBlockFast(bukkit, phaseBlock);
-                }
+        }
+        for (MovecraftLocation location : airLocs) {
+            Location bukkit = location.toBukkit(world);
+            if(Tags.FLUID.contains(bukkit.getBlock().getType())) {
+                if (Settings.Debug) logger.info("AIR BLOCK @" +location+"; WAS PREVIOUSLY: "+bukkit.getBlock().getType().toString());
+                handler.setBlockFast(bukkit, Movecraft.getInstance().getAirBlockData());
+                if (Settings.Debug) logger.info("AIR BLOCK @" +location+"; IS NOW: "+bukkit.getBlock().getType().toString());
             }
-            for (MovecraftLocation location : airLocs) {
-                Location bukkit = location.toBukkit(world);
-                if(Tags.FLUID.contains(bukkit.getBlock().getType())) {
-                    if (Settings.Debug) logger.info("AIR BLOCK @" +location+"; WAS PREVIOUSLY: "+bukkit.getBlock().getType().toString());
-                    handler.setBlockFast(bukkit, Movecraft.getInstance().getAirBlockData());
-                    if (Settings.Debug) logger.info("AIR BLOCK @" +location+"; IS NOW: "+bukkit.getBlock().getType().toString());
-                }
-            }
-            if (!craft.isNotProcessing())
-                craft.setProcessing(false);
         }
         if (!craft.isNotProcessing())
             craft.setProcessing(false);

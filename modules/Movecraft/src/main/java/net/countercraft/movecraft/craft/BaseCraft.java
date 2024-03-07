@@ -318,7 +318,6 @@ public abstract class BaseCraft implements Craft {
     }
 
     public Collection<Block> getBlockType(Material mat){
-        //ChunkManager.addChunksToLoad(ChunkManager.getChunks((new SetHitBox(this.hitBox)).locations,this.w));
         final Set<Block> blocks = new HashSet<>();
         if (this.isTrackingKey(mat)) {
             for (MovecraftLocation l : this.getTrackedMovecraftLocs(mat)) {
@@ -650,7 +649,7 @@ public abstract class BaseCraft implements Craft {
         this.sinking = sinking;
     }
     public boolean getSinking() {
-        return sinking;
+        return sinking || this instanceof SinkingCraftImpl;
     }
 
     
@@ -857,10 +856,10 @@ public abstract class BaseCraft implements Craft {
         //TODO: Remove this temporary system in favor of passthrough blocks
         // Find the waterline from the surrounding terrain or from the static level in the craft type
         int waterLine = type.getIntProperty(CraftType.STATIC_WATER_LEVEL);
-        if ((type.getIntProperty(CraftType.STATIC_WATER_LEVEL) != 62 && type.getIntProperty(CraftType.STATIC_WATER_LEVEL) != -128) || hitBox.isEmpty()) {
+        if ((type.getIntProperty(CraftType.STATIC_WATER_LEVEL) != 62 && type.getIntProperty(CraftType.STATIC_WATER_LEVEL) != -64) || hitBox.isEmpty()) {
             return type.getIntProperty(CraftType.STATIC_WATER_LEVEL);
         }
-        if (hitBox.getMinY() >= 200) return -128;
+        if (hitBox.getMinY() >= 200) return -64;
 
         // figure out the water level by examining blocks next to the outer boundaries of the craft
         for (int posY = hitBox.getMaxY() + 1; posY >= hitBox.getMinY() - 2; posY--) {

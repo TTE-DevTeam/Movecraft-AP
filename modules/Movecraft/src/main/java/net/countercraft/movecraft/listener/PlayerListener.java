@@ -97,6 +97,8 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.util.Vector;
+//import com.jeff_media.customblockdata.*;
+//import com.jeff_media.morepersistentdatatypes.*;
 
 import static net.countercraft.movecraft.util.ChatUtils.MOVECRAFT_COMMAND_PREFIX;
 
@@ -164,20 +166,13 @@ public class PlayerListener implements Listener {
 
     @EventHandler
     public void onCraftRelease(CraftReleaseEvent e) {
-      if (e.isCancelled()) return;
-      Craft crft = e.getCraft();
-      if (crft instanceof BaseCraft) {
-        BaseCraft craft = (BaseCraft)crft;
-        craft.getRawTrackedMap().clear();
-        craft.getCraftTags().clear();
-        for (Block block : craft.getBlockName("SIGN")) {
-          Sign sign = (Sign)block.getState();
-          try {
-            sign.setEditable(true);
-            sign.update(true,false);
-          } catch (Exception exc) {}
+        if (e.isCancelled()) return;
+        Craft crft = e.getCraft();
+        if (crft instanceof BaseCraft) {
+          BaseCraft craft = (BaseCraft)crft;
+          craft.getRawTrackedMap().clear();
+          craft.getCraftTags().clear();
         }
-      }
     }
 
     @EventHandler
@@ -185,29 +180,33 @@ public class PlayerListener implements Listener {
         Movecraft instance = Movecraft.getInstance();
         if (e.getCraft() instanceof BaseCraft) {
           final BaseCraft craft = (BaseCraft)e.getCraft();
-          craft.setDataTag("origin_size",craft.getOrigBlockCount());
+          final Player player = craft.getNotificationPlayer();
+          if (player != null) craft.addPassenger(player);
+          if (craft.getOrigBlockCount() >= 1000000) return;
           final int waterline = craft.getWaterLine();
           final SetHitBox interior = CraftManager.getInstance().detectCraftInterior(craft);
           final SetHitBox fullBox = new SetHitBox(craft.getHitBox().union(interior));
-          for (Block block : craft.getBlockName("SIGN")) {
-            Sign sign = (Sign)block.getState();
-            try {
-              sign.setEditable(false);
-              sign.update(true,false);
-            } catch (Exception exc) {}
-          }
-          for (MovecraftLocation loc : fullBox.boundingHitBox()) {
-            if (fullBox.contains(loc)) continue;
-            if (loc.getY() <= waterline) {
-              if (Tags.FLUID.contains(loc.toBukkit(craft.getWorld()).getBlock().getType())) {
-                craft.getPhaseBlocks().put(loc.toBukkit(craft.getWorld()),Movecraft.getInstance().getWaterBlockData());
-                continue;
+          if (craft.getOrigBlockCount() < 1000000) {
+            for (Block block : craft.getBlockName("SIGN")) {
+              Sign sign = (Sign)block.getState();
+              try {
+                sign.setWaxed(true);
+                sign.update(true,false);
+              } catch (Exception exc) {}
+            }
+            for (MovecraftLocation loc : fullBox.boundingHitBox()) {
+              if (fullBox.contains(loc)) continue;
+              if (loc.getY() <= waterline) {
+                if (Tags.FLUID.contains(loc.toBukkit(craft.getWorld()).getBlock().getType())) {
+                  craft.getPhaseBlocks().put(loc.toBukkit(craft.getWorld()),Movecraft.getInstance().getWaterBlockData());
+                  continue;
+                }
               }
             }
           }
-          Player player = craft.getNotificationPlayer();
           if (player != null) Movecraft.getInstance().getLogger().info(player.getName()+"'s Craft ("+craft+") Internal Air-Hitbox Size: "+interior.size());
           else Movecraft.getInstance().getLogger().info("N/A's Craft ("+craft+") Internal Air-Hitbox Size: "+interior.size());
+          craft.setDataTag("origin_size",craft.getHitBox().size()-interior.size());
           craft.setTrackedMovecraftLocs("air",interior.asSet());
           craft.setHitBox(fullBox);
         }
@@ -215,11 +214,14 @@ public class PlayerListener implements Listener {
     }
 
     @EventHandler
-    public void onPlayerLogout(PlayerQuitEvent e) {
+    public void onPLayerLogout(PlayerQuitEvent e) {
         try {
           CraftManager.getInstance().forceRemoveCraft(CraftManager.getInstance().getCraftByPlayer(e.getPlayer()));
         } catch (Exception ex) {}
     }
+
+    @EventHandler
+    public void onPlayerLogout(PlayerQuitEvent e) {}
 
     @EventHandler
     public void onPlayerDeath(EntityDamageByEntityEvent e) {  
@@ -310,22 +312,5 @@ public class PlayerListener implements Listener {
         }
       }
     }
-    /*if (this.timeToReleaseAfter.containsKey(c) && ((Long)this.timeToReleaseAfter.get(c)).longValue() < System.currentTimeMillis()) {
-      CraftManager.getInstance().removeCraft((Craft)c, CraftReleaseEvent.Reason.PLAYER);
-      this.timeToReleaseAfter.remove(c);
-      return;
-    }
-    if (c.isNotProcessing() && c.getType().getBoolProperty(CraftType.MOVE_ENTITIES) && !this.timeToReleaseAfter.containsKey(c)) {
-      if (Settings.ManOverboardTimeout != 0) {
-        p.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText("Manoverboard - Player has left craft"));
-        CraftManager.getInstance().addOverboard(p);
-      } else {
-        p.sendMessage(I18nSupport.getInternationalisedString("Release - Player has left craft"));
-      }
-      //Set<Location> mergePoints = checkCraftBorders((Craft)c);
-      //if (!mergePoints.isEmpty())
-      //  p.sendMessage(I18nSupport.getInternationalisedString("Manoverboard - Craft May Merge"));
-      this.timeToReleaseAfter.put(c, Long.valueOf(System.currentTimeMillis() + c.getType().getIntProperty(CraftType.RELEASE_TIMEOUT) * 1000L));*/
-    //}
   }
 }

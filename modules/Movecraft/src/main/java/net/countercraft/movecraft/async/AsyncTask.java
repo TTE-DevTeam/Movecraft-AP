@@ -32,6 +32,7 @@ import org.bukkit.block.Block;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
+import net.countercraft.movecraft.async.rotation.RotationTask;
 
 import java.util.Map;
 import java.util.Random;
@@ -65,6 +66,7 @@ public abstract class AsyncTask extends BukkitRunnable {
 
     public boolean checkFuel() {
         if (getCraft() instanceof PlayerCraftImpl) {
+            if (this instanceof RotationTask) return true;
             return CraftManager.getInstance().forceBurnFuel(craft);
         }
         return true;

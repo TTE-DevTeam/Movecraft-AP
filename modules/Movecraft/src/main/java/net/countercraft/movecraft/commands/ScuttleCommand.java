@@ -61,10 +61,7 @@ public class ScuttleCommand implements CommandExecutor {
 
         craft.setCruising(false);
         craft.setSinking(true);
-        CraftManager.getInstance().removePlayerFromCraft(craft);
         commandSender.sendMessage(MOVECRAFT_COMMAND_PREFIX + I18nSupport.getInternationalisedString("Scuttle - Scuttle Activated"));
-        CraftSinkEvent evnt = new CraftSinkEvent(craft);
-        Bukkit.getServer().getPluginManager().callEvent(evnt);
         return true;
     }
 }

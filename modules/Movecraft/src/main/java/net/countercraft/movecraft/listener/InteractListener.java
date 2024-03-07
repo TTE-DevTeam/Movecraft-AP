@@ -51,8 +51,6 @@ public final class InteractListener implements Listener {
 
     @EventHandler(priority = EventPriority.LOWEST) // LOWEST so that it runs before the other events
     public void onPlayerInteract(@NotNull PlayerInteractEvent e) {
-        int dx, dy, dz;
-        dx = dy = dz = 0;
         if (e.getAction() == Action.LEFT_CLICK_BLOCK || e.getAction() == Action.LEFT_CLICK_AIR) {
             if (e.getItem() != null && e.getItem().getType() == Settings.PilotTool) {
                 // Handle pilot tool left clicks
@@ -73,15 +71,6 @@ public final class InteractListener implements Listener {
                         || !craft.getType().getBoolProperty(CraftType.CAN_DIRECT_CONTROL)) {
                     // Deny players from entering direct control mode
                     p.sendMessage(I18nSupport.getInternationalisedString("Insufficient Permissions"));
-                }
-                else {
-                    // Enter direct control mode
-                    return;
-                    //craft.setPilotLocked(true);
-                    //craft.setPilotLockedX(p.getLocation().getBlockX() + 0.5);
-                    //craft.setPilotLockedY(p.getLocation().getY());
-                    //craft.setPilotLockedZ(p.getLocation().getBlockZ() + 0.5);
-                    //p.sendMessage(I18nSupport.getInternationalisedString("Direct Control - Entering"));
                 }
             }
             else if (e.getAction() == Action.LEFT_CLICK_BLOCK) {
@@ -104,18 +93,13 @@ public final class InteractListener implements Listener {
                 return;
 
             // Handle pilot tool right clicks
-
             e.setCancelled(true);
+
             Player p = e.getPlayer();
             PlayerCraft craft = CraftManager.getInstance().getCraftByPlayer(p);
             if (craft == null)
                 return;
-            if (!MathUtils.locationNearHitBox((craft).getHitBox(),p.getLocation(),0.5)) {
-              if (!MathUtils.locationNearHitBox((craft).getHitBox(),p.getLocation(),1.5)) {
-                  //Movecraft.getInstance().getLogger().warning("Skipping Entity: "+p+", Not Aboard");
-                  return;
-                }
-            }
+
             CraftType type = craft.getType();
             int currentGear = craft.getCurrentGear();
             if (p.isSneaking() && !craft.getPilotLocked()) {
@@ -133,7 +117,6 @@ public final class InteractListener implements Listener {
                 craft.setCurrentGear(currentGear);
                 return;
             }
-
             int tickCooldown = (int) craft.getType().getPerWorldProperty(
                     CraftType.PER_WORLD_TICK_COOLDOWN, craft.getWorld());
             if (type.getBoolProperty(CraftType.GEAR_SHIFTS_AFFECT_DIRECT_MOVEMENT)
@@ -160,18 +143,14 @@ public final class InteractListener implements Listener {
             if (!MathUtils.locationNearHitBox(craft.getHitBox(), p.getLocation(), 2))
                 return; // Player is not near the craft, so don't do anything
 
-            int gear = craft.getCurrentGear();
             if (craft.getPilotLocked()) {
                 // Direct control mode allows vertical movements when right-clicking
-                dy = 1*gear; // Default to up
+                int dy = 1; // Default to up
                 if (p.isSneaking())
-                    dy = -1*gear; // Down if sneaking
-                PlayerCraftMovementEvent event = new PlayerCraftMovementEvent(craft,0,dy,0);
-                Bukkit.getPluginManager().callEvent(event);
-                if (event.isCancelled()) return;
-                dx = event.getDx();
-                dy = event.getDy();
-                dz = event.getDx();
+                    dy = -1; // Down if sneaking
+                if (craft.getType().getBoolProperty(CraftType.GEAR_SHIFTS_AFFECT_DIRECT_MOVEMENT))
+                    dy *= currentGear; // account for gear shifts
+
                 craft.translate(craft.getWorld(), 0, dy, 0);
                 timeMap.put(p, System.currentTimeMillis());
                 craft.setLastCruiseUpdate(System.currentTimeMillis());
@@ -181,20 +160,17 @@ public final class InteractListener implements Listener {
             double rotation = p.getLocation().getYaw() * Math.PI / 180.0;
             float nx = -(float) Math.sin(rotation);
             float nz = (float) Math.cos(rotation);
-            dx = (Math.abs(nx) >= 0.5 ? 1 : 0) * (int) Math.signum(nx);
-            dz = (Math.abs(nz) > 0.5 ? 1 : 0) * (int) Math.signum(nz);
-
+            int dx = (Math.abs(nx) >= 0.5 ? 1 : 0) * (int) Math.signum(nx);
+            int dz = (Math.abs(nz) > 0.5 ? 1 : 0) * (int) Math.signum(nz);
+            dx *= currentGear;
+            dz *= currentGear;
             float pitch = p.getLocation().getPitch();
-            dy = -(Math.abs(pitch) >= 25 ? 1 : 0) * (int) Math.signum(pitch);
+            int dy = -(Math.abs(pitch) >= 25 ? 1 : 0) * (int) Math.signum(pitch);
             if (Math.abs(pitch) >= 75) {
                 dx = 0;
                 dz = 0;
             }
 
-
-            PlayerCraftMovementEvent event = new PlayerCraftMovementEvent(craft,dx,dy,dz);
-            Bukkit.getPluginManager().callEvent(event);
-            if (event.isCancelled()) return;
             craft.translate(craft.getWorld(), dx, dy, dz);
             timeMap.put(p, System.currentTimeMillis());
             craft.setLastCruiseUpdate(System.currentTimeMillis());

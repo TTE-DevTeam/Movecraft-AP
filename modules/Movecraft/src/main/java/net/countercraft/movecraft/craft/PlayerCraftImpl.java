@@ -42,7 +42,7 @@ public class PlayerCraftImpl extends BaseCraft implements PlayerCraft {
         if (original instanceof BaseCraft) {
             this.setPassengers(((BaseCraft)original).getPassengers());
             this.getRawTrackedMap().putAll(((BaseCraft)original).getRawTrackedMap());
-            this.getCraftTags().putAll(((BaseCraft)original).craftTags);
+            this.getCraftTags().putAll(((BaseCraft)original).getCraftTags());
         }
     }
 

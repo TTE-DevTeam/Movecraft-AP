@@ -70,12 +70,13 @@ public class ScuttleSign implements Listener {
         Bukkit.getServer().getPluginManager().callEvent(e);
         if(e.isCancelled())
             return;
-
-        craft.setCruising(false);
-        craft.setSinking(true);
-        CraftManager.getInstance().removePlayerFromCraft(craft);
         commandSender.sendMessage(MOVECRAFT_COMMAND_PREFIX + I18nSupport.getInternationalisedString("Scuttle - Scuttle Activated"));
         CraftSinkEvent evnt = new CraftSinkEvent(craft);
         Bukkit.getServer().getPluginManager().callEvent(evnt);
+        if(evnt.isCancelled())
+            return;
+
+        craft.setCruising(false);
+        craft.setSinking(true);
     }
 }

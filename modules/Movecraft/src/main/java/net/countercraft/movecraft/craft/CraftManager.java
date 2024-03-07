@@ -304,7 +304,8 @@ public class CraftManager implements Iterable<Craft>{
     private final java.util.Random rand = new java.util.Random();
     @NotNull public final ConcurrentMap<Player, PlayerCraft> playerCrafts = new ConcurrentHashMap<>();
     @NotNull private final ConcurrentMap<Craft, BukkitTask> releaseEvents = new ConcurrentHashMap<>();
-    public static ItemStack wasteItem = new ItemStack(Material.AIR);
+    public static final ItemStack wasteItem = new ItemStack(Material.AIR);
+    public static final ItemStack bucketItem = new ItemStack(Material.BUCKET,1);
     public static void initialize(boolean loadCraftTypes) {
         ourInstance = new CraftManager(loadCraftTypes);
     }
@@ -317,10 +318,12 @@ public class CraftManager implements Iterable<Craft>{
         return -1;
     }
     private CraftManager(boolean loadCraftTypes) {
-        this.addFuelType(new ItemStack(Material.COAL),45.0);
-        this.addFuelType(new ItemStack(Material.CHARCOAL),45.0);
+        this.addFuelType(new ItemStack(Material.COAL),75.0);
+        this.addFuelType(new ItemStack(Material.CHARCOAL),75.0);
         this.addFuelType(new ItemStack(Material.COAL_BLOCK),125.0);
         this.addFuelType(new ItemStack(Material.DRIED_KELP_BLOCK),125.0);
+        this.addFuelType(new ItemStack(Material.BLAZE_ROD),250.0);
+        this.addFuelType(new ItemStack(Material.LAVA_BUCKET),750.0);
         if(loadCraftTypes) {
             this.craftTypes = loadCraftTypes();
         }
@@ -388,16 +391,24 @@ public class CraftManager implements Iterable<Craft>{
             ((BaseCraft)craft).setSinking(false);
             return craft;
         }
-        ((BaseCraft)craft).setSinking(true);
         CraftSinkEvent sinkevent = new CraftSinkEvent(craft);
+        if (sinkevent.isCancelled()) {
+            ((BaseCraft)craft).setSinking(false);
+            return craft;
+        }
+        ((BaseCraft)craft).setSinking(true);
         Bukkit.getServer().getPluginManager().callEvent(sinkevent);
-
         return craft;
     }
     public Craft quietSink(@NotNull Craft craft) {
         CraftPreSinkEvent event = new CraftPreSinkEvent(craft);
         Bukkit.getServer().getPluginManager().callEvent(event);
         if (event.isCancelled()) {
+            ((BaseCraft)craft).setSinking(false);
+            return craft;
+        }
+        CraftSinkEvent sinkevent = new CraftSinkEvent(craft);
+        if (sinkevent.isCancelled()) {
             ((BaseCraft)craft).setSinking(false);
             return craft;
         }
@@ -421,11 +432,16 @@ public class CraftManager implements Iterable<Craft>{
             for (ItemStack istack : fuelTypeMap.keySet()) {
                 double fuelBurnChance = this.fuelTypeMap.get(istack);
                 iters++;
-                found = this.forceCheckFuel(craft,1+((int)(craft.getCurrentGear()/2)+2),fuelBurnChance,istack,wasteItem);
+                if (istack.getType() == Material.LAVA_BUCKET) {
+                    found = this.forceCheckFuel(craft,1+((int)(craft.getCurrentGear()/2)+2),fuelBurnChance,istack,this.bucketItem);
+
+                } else {
+                    found = this.forceCheckFuel(craft,1+((int)(craft.getCurrentGear()/2)+2),fuelBurnChance,istack,this.wasteItem);
+                }
                 if (found)
                     break;
             }
-            }
+        }
         if (craft instanceof BaseCraft) {
             ((BaseCraft)craft).setDataTag("has_fuel",found);
         }
@@ -752,18 +768,13 @@ public class CraftManager implements Iterable<Craft>{
     }
 
     public void forceRemoveCraft(@NotNull Craft c) {
-        this.crafts.remove(c);
         if (c instanceof BaseCraft) {
             ((BaseCraft)c).getCraftTags().clear();
             ((BaseCraft)c).getRawTrackedMap().clear();
         }
         if(c instanceof PlayerCraft)
-            craftPlayerIndex.remove(((PlayerCraft) c).getPilot());
-        CraftReleaseEvent e = new CraftReleaseEvent(c, CraftReleaseEvent.Reason.FORCE);
-        Bukkit.getServer().getPluginManager().callEvent(e);
-        if(e.isCancelled()) {
-            throw new NonCancellableReleaseException();
-        }
+          this.craftPlayerIndex.remove(((PlayerCraft) c).getPilot());
+        this.crafts.remove(c);
     }
 
     /**

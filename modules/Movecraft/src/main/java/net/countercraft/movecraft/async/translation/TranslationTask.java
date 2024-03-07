@@ -434,14 +434,8 @@ public class TranslationTask extends AsyncTask {
             for (Entity entity : nearEntites) {
                 if (entity == null)
                     continue;
-                if (entity.getType() != EntityType.FIREWORK && entity.getType() != EntityType.ARROW) {
+                if (entity.getType() != EntityType.FIREWORK && entity.getType() != EntityType.PRIMED_TNT && entity.getType() != EntityType.ARROW) {
                     if ((((BaseCraft)craft).getPassengers().contains(entity) == false)) {
-                        if (entity.getType().toString().contains("Display")) {
-                            if (!(craft.getHitBox().contains(MathUtils.bukkit2MovecraftLoc(entity.getLocation())))) {
-                                ((BaseCraft)craft).removePassenger(entity);
-                                continue;
-                            }
-                        }
                         ((BaseCraft)craft).addPassenger(entity);
                     }
                 }
@@ -451,7 +445,7 @@ public class TranslationTask extends AsyncTask {
                 MovecraftLocation invMoveLoc = null;
                 if (entity instanceof HumanEntity) {
                     inventoryView = ((HumanEntity) entity).getOpenInventory();
-                    if (inventoryView.getType() != InventoryType.CRAFTING) {
+                    if (inventoryView.getType() != InventoryType.CRAFTING && inventoryView.getTopInventory().getHolder() != null) {
                         iLoc = Movecraft.getInstance().getWorldHandler().getAccessLocation(inventoryView);
                         if (iLoc != null) {
                             invMoveLoc = new MovecraftLocation(iLoc.getBlockX(), iLoc.getBlockY(), iLoc.getBlockZ());

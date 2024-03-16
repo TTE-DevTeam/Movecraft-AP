@@ -257,7 +257,7 @@ public class PlayerListener implements Listener {
         } else {
           p.sendMessage(I18nSupport.getInternationalisedString("Release - Player has left craft"));
           try {
-            CraftManager.getInstance().forceRemoveCraft(CraftManager.getInstance().getCraftByPlayer(e.getPlayer()));
+            CraftManager.getInstance().forceRemoveCraft(CraftManager.getInstance().getCraftByPlayer(event.getPlayer()));
           } catch (Exception ex) {
           }
         }

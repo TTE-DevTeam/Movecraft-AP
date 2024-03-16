@@ -49,7 +49,7 @@ public class ManOverboardCommand implements CommandExecutor{
         }
         if (Settings.ManOverboardDistSquared > 1.0D) {
             if (player.getWorld().equals(craft.getWorld())) {
-                if (player.distanceSquared(telPoint) > Settings.ManOverboardDistSquared) {
+                if (player.getLocation().distanceSquared(telPoint) > Settings.ManOverboardDistSquared) {
                     player.sendMessage(MOVECRAFT_COMMAND_PREFIX + "You are too far away from your Craft.");
                     return true;
                 }

@@ -97,6 +97,8 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.util.Vector;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TextComponent;
 //import com.jeff_media.customblockdata.*;
 //import com.jeff_media.morepersistentdatatypes.*;
 

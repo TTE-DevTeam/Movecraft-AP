@@ -183,7 +183,7 @@ public final class SubcraftMoveSign implements Listener {
                     if (craft instanceof SubCraftImpl) { // Subtract craft from the parent
                         BaseCraft parent = (BaseCraft)((SubCraftImpl)craft).getParent();
                         ((BaseCraft)craft).addPassenger(player);
-                        ((BaseCraft)craft).passengers.addAll(parent.getWorld().getNearbyEntities(craft.getHitBox().getMidPoint().toBukkit(parent.getWorld()),
+                        ((BaseCraft)craft).addPassengers(parent.getWorld().getNearbyEntities(craft.getHitBox().getMidPoint().toBukkit(parent.getWorld()),
                                 craft.getHitBox().getXLength() / 2.0 + 3.0,
                                 craft.getHitBox().getYLength() / 1.5 + 3.0,
                                 craft.getHitBox().getZLength() / 2.0 + 3.0));

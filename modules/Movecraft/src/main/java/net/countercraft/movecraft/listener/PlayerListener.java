@@ -97,8 +97,8 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.util.Vector;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.TextComponent;
+import net.md_5.bungee.api.ChatMessageType;
+import net.md_5.bungee.api.chat.TextComponent;
 //import com.jeff_media.customblockdata.*;
 //import com.jeff_media.morepersistentdatatypes.*;
 
@@ -237,9 +237,6 @@ public class PlayerListener implements Listener {
           CraftManager.getInstance().forceRemoveCraft(CraftManager.getInstance().getCraftByPlayer(e.getPlayer()));
         } catch (Exception ex) {}
     }
-
-    @EventHandler
-    public void onPlayerLogout(PlayerQuitEvent e) {}
 
     @EventHandler
     public void onPlayerDeath(EntityDamageByEntityEvent e) {}

@@ -809,13 +809,13 @@ public class CraftManager implements Iterable<Craft>{
         if (getCraftFromBlock(startPoint.toBukkit(world).getBlock()) instanceof BaseCraft) {
             BaseCraft craft = (BaseCraft)getCraftFromBlock(startPoint.toBukkit(world).getBlock());
             int origin_lift = 0;
-            //craft.midPoint = craft.getHitBox().getMidPoint();
             for (RequiredBlockEntry entry : craft.getType().getRequiredBlockProperty(CraftType.FLY_BLOCKS)) {
                 for (Material mats : entry.getMaterials()) {
                     origin_lift += (((craft).getBlockType(mats)).size());
                 }
             }
             craft.setDataTag("origin_lift",(origin_lift));
+            craft.setDataTag("current_lift", (int)(origin_lift));
             int origin_engine = 0;
             for(RequiredBlockEntry entry : craft.getType().getRequiredBlockProperty(CraftType.MOVE_BLOCKS)) {
                 for (Material mat : entry.getMaterials()) {
@@ -823,6 +823,7 @@ public class CraftManager implements Iterable<Craft>{
                 }
             }
             craft.setDataTag("origin_engine", (int)(origin_engine));
+            craft.setDataTag("current_engine", (int)(origin_engine));
         }
     }
 
@@ -841,13 +842,13 @@ public class CraftManager implements Iterable<Craft>{
         if (getCraftFromBlock(startPoint.toBukkit(world).getBlock()) instanceof BaseCraft) {
             BaseCraft craft = (BaseCraft)getCraftFromBlock(startPoint.toBukkit(world).getBlock());
             int origin_lift = 0;
-            //craft.midPoint = craft.getHitBox().getMidPoint();
             for (RequiredBlockEntry entry : craft.getType().getRequiredBlockProperty(CraftType.FLY_BLOCKS)) {
                 for (Material mats : entry.getMaterials()) {
                     origin_lift += (((craft).getBlockType(mats)).size());
                 }
             }
             craft.setDataTag("origin_lift",(origin_lift));
+            craft.setDataTag("current_lift", (int)(origin_lift));
             int origin_engine = 0;
             for(RequiredBlockEntry entry : craft.getType().getRequiredBlockProperty(CraftType.MOVE_BLOCKS)) {
                 for (Material mats : entry.getMaterials()) {
@@ -855,6 +856,7 @@ public class CraftManager implements Iterable<Craft>{
                 }
             }
             craft.setDataTag("origin_engine", (int)(origin_engine));
+            craft.setDataTag("current_engine", (int)(origin_engine));
         }
     }
 
@@ -925,27 +927,6 @@ public class CraftManager implements Iterable<Craft>{
         return (this.getCraftFromBlock(b));
     }
 
-
-    public Craft forcePilotAndSplit(@NotNull CraftType craftType, Block b, Player player) {
-        MovecraftLocation startPoint = new MovecraftLocation(b.getX(), b.getY(), b.getZ());
-        World world = (World)b.getWorld();
-        Craft originCraft = (this.getCraftFromBlock(b));
-        this.detect(
-                startPoint,
-                craftType, (type, w, p, parents) -> {
-                    return new Pair<>(Result.succeed(),
-                            new PlayerCraftImpl(type, w, p));
-                },
-                world, player,
-                Movecraft.getAdventure().player(player),
-                craft -> () -> {
-                    Bukkit.getServer().getPluginManager().callEvent(new CraftPilotEvent(craft, CraftPilotEvent.Reason.PLAYER));
-                }
-        );
-        return (this.getCraftFromBlock(b));
-    }
-
-
     public Craft forcePilot(@NotNull CraftType craftType, @NotNull Block b, @NotNull Player player) {
         MovecraftLocation startPoint = new MovecraftLocation(b.getX(), b.getY(), b.getZ());
         World world = (World)b.getWorld();
@@ -992,7 +973,11 @@ public class CraftManager implements Iterable<Craft>{
                     }
                 }
         );
-        return (this.getCraftFromBlock(b));
+        Craft c = (this.getCraftFromBlock(b));
+        if (c != null) {
+
+        }
+        return c;
     }
 
     @Nullable
@@ -1215,7 +1200,7 @@ public class CraftManager implements Iterable<Craft>{
     @Nullable
     public CraftType getCraftTypeFromString(String s) {
         for (CraftType t : craftTypes) {
-            if (s.equalsIgnoreCase(t.getStringProperty(CraftType.NAME))) {
+            if (s.equalsIgnoreCase(t.getName())) {
                 return t;
             }
         }
@@ -1250,7 +1235,6 @@ public class CraftManager implements Iterable<Craft>{
             if (i.getHitBox().isEmpty())
                 continue;
             int midX = (i.getHitBox().getMaxX() + i.getHitBox().getMinX()) >> 1;
-//				int midY=(i.getMaxY()+i.getMinY())>>1; don't check Y because it is slow
             int midZ = (i.getHitBox().getMaxZ() + i.getHitBox().getMinZ()) >> 1;
             long distSquared = (long) (Math.pow(midX -  loc.getX(), 2) + Math.pow(midZ - (int) loc.getZ(), 2));
             if (distSquared < closestDistSquared) {

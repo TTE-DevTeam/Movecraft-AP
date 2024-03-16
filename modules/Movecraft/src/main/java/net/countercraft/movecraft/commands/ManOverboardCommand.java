@@ -37,15 +37,26 @@ public class ManOverboardCommand implements CommandExecutor{
 
         Location telPoint = getCraftTeleportPoint(craft);
 
-        //if ((System.currentTimeMillis() - CraftManager.getInstance().getTimeFromOverboard(player)) / 1_000 > Settings.ManOverboardTimeout
-        //        && !MathUtils.locIsNearCraftFast(craft, MathUtils.bukkit2MovecraftLoc(player.getLocation()))) {
-        //    player.sendMessage(MOVECRAFT_COMMAND_PREFIX + I18nSupport.getInternationalisedString("ManOverboard - Timed Out"));
-        //    return true;
-        //}
+        if ((System.currentTimeMillis() - CraftManager.getInstance().getTimeFromOverboard(player)) / 1_000 > Settings.ManOverboardTimeout
+                && !MathUtils.locIsNearCraftFast(craft, MathUtils.bukkit2MovecraftLoc(player.getLocation()))) {
+            player.sendMessage(MOVECRAFT_COMMAND_PREFIX + I18nSupport.getInternationalisedString("ManOverboard - Timed Out"));
+            return true;
+        }
 
         if (craft.getDisabled() || craft.getSinking() || CraftManager.getInstance().getPlayerFromCraft(craft) == null) {
             player.sendMessage(MOVECRAFT_COMMAND_PREFIX + I18nSupport.getInternationalisedString("ManOverboard - Disabled"));
             return true;
+        }
+        if (Settings.ManOverboardDistSquared > 1.0D) {
+            if (player.getWorld().equals(craft.getWorld())) {
+                if (player.distanceSquared(telPoint) > Settings.ManOverboardDistSquared) {
+                    player.sendMessage(MOVECRAFT_COMMAND_PREFIX + "You are too far away from your Craft.");
+                    return true;
+                }
+            } else {
+                player.sendMessage(MOVECRAFT_COMMAND_PREFIX + "You are in a different world than your Craft.");
+                return true;
+            }
         }
 
         ManOverboardEvent event = new ManOverboardEvent(craft, telPoint);
@@ -57,10 +68,10 @@ public class ManOverboardCommand implements CommandExecutor{
         return true;
     }
 
-    public Location getCraftTeleportPoint(Craft craft) {
+    public static Location getCraftTeleportPoint(Craft craft) {
         double telX = (craft.getHitBox().getMinX() + craft.getHitBox().getMaxX())/2D + 0.5D;
         double telZ = (craft.getHitBox().getMinZ() + craft.getHitBox().getMaxZ())/2D + 0.5D;
-        double telY = craft.getHitBox().getMaxY() + 1;
+        double telY = craft.getHitBox().getMaxY() + 0.5D;
         return new Location(craft.getWorld(), telX, telY, telZ);
     }
 }

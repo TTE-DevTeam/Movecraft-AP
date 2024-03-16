@@ -155,11 +155,6 @@ public final class SubcraftMoveSign implements Listener {
                 event.setCancelled(true);
                 return;
             }
-            //if (!CraftManager.getInstance().getCraftFromBlock(event.getClickedBlock()).isNotProcessing()) {
-            //    event.getPlayer().sendMessage("You are already Moving");
-            //    event.setCancelled(true);
-            //    return;
-            //}
         }
         event.setCancelled(true);
         rotating.add(startPoint);

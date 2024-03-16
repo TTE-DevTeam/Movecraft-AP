@@ -121,11 +121,11 @@ public abstract class BaseCraft implements Craft {
     private final AtomicBoolean processing = new AtomicBoolean();
     private final long origPilotTime;
     @NotNull
-    public final Map<Location, BlockData> phaseBlocks = new HashMap<>();
+    protected final Map<Location, BlockData> phaseBlocks = new HashMap<>();
     @Nullable
-    public Set<Entity> passengers = new HashSet<>();
+    private Set<Entity> passengers = new HashSet<>();
     @Nullable
-    public Set<Craft> contacts = new HashSet<>();
+    protected Set<Craft> contacts = new HashSet<>();
     protected final Map<Object, Collection<TrackedLocation>> trackedLocations = new HashMap<>();;
 
     protected final Map<String, Object> craftTags = new HashMap<>();
@@ -152,19 +152,17 @@ public abstract class BaseCraft implements Craft {
     private Player notificationPlayer;
     @NotNull
     private Audience audience;
-    public boolean isAuto = false;
-    public int speedMod = -1;
+    private int speedMod = 0;
     @NotNull
     private String name = "";
     @NotNull
     private MovecraftLocation lastTranslation = new MovecraftLocation(0, 0, 0);
-    public boolean sinking;
-    public MovecraftLocation midPoint = null;
+    protected boolean sinking;
 
     public BaseCraft(@NotNull CraftType type, @NotNull World world) {
         this.type = type;
         this.w = world;
-        this.speedMod = -1;
+        this.speedMod = 0;
         hitBox = new SetHitBox();
         collapsedHitBox = new SetHitBox();
         fluidLocations = new SetHitBox();
@@ -178,12 +176,11 @@ public abstract class BaseCraft implements Craft {
     }
 
     public Location getLocation() {
-        return this.getHitBox().getMidPoint().toBukkit(this.getWorld());
+        return getHitBox().getMidPoint().toBukkit(this.getWorld());
     }
 
     public MovecraftLocation getMidPoint() {
-        if (this.midPoint == null) this.midPoint = this.getHitBox().getMidPoint();
-        return this.midPoint;
+        return getHitBox().getMidPoint();
     }
 
     public boolean isNotProcessing() {
@@ -206,13 +203,6 @@ public abstract class BaseCraft implements Craft {
     @NotNull
     public CraftType getType() {
         return type;
-    }
-    public boolean isAutomated() {
-        return isAuto;
-    }
-
-    public void setAutomated(@NotNull boolean auto) {
-        this.isAuto = auto;
     }
     
     public void setDataTag(String key, Object data) {
@@ -822,7 +812,7 @@ public abstract class BaseCraft implements Craft {
         double speed = 20.0 * (cruiseSkipBlocks + 1.0) / (float) cruiseTickCooldown;
         speed -= type.getDoubleProperty(CraftType.DYNAMIC_LAG_SPEED_FACTOR) * Math.pow(getMeanCruiseTime() * 1000.0, type.getDoubleProperty(CraftType.DYNAMIC_LAG_POWER_FACTOR));
         speed = Math.max(type.getDoubleProperty(CraftType.DYNAMIC_LAG_MIN_SPEED), speed);
-        speed = speed + (-1 * getSpeedMod());
+        speed = speed + (-1 * getSpeedMod()); //Negative SpeedMod means Faster, Positive SpeedMod Means Slower.
         if (speed < 0) speed = 2;
         return (int) Math.round((20.0 * (cruiseSkipBlocks + 1.0)) / speed) * (type.getBoolProperty(CraftType.GEAR_SHIFTS_AFFECT_TICK_COOLDOWN) ? currentGear : 1);
         //In theory, the chest penalty is not needed for a DynamicLag craft.

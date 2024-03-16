@@ -157,12 +157,10 @@ public class PlayerListener implements Listener {
     public void onCraftTranslate(CraftTranslateEvent e) {}
     
     @EventHandler
-    public void onCraftRotate(CraftRotateEvent e) {
-    }
+    public void onCraftRotate(CraftRotateEvent e) {}
 
     @EventHandler
-    public void onCraftPreTranslate(CraftPreTranslateEvent e) {
-    }
+    public void onCraftPreTranslate(CraftPreTranslateEvent e) {}
 
     @EventHandler
     public void onCraftRelease(CraftReleaseEvent e) {
@@ -176,10 +174,14 @@ public class PlayerListener implements Listener {
               if (ChatColor.stripColor(sign.getLine(0)).equalsIgnoreCase(craft.getType().getName())) continue;
               if (ChatColor.stripColor(sign.getLine(0)).equalsIgnoreCase("pilot:")) continue;
               if (ChatColor.stripColor(sign.getLine(0)).equalsIgnoreCase("[private]")) continue;
+              if (ChatColor.stripColor(sign.getLine(0)).equalsIgnoreCase("[node]")) continue;
+              if (ChatColor.stripColor(sign.getLine(0)).equalsIgnoreCase("remote sign")) continue;
               try {
+                sign.setWaxed(false);
+              } catch (Exception exc) {
                 sign.setEditable(true);
-                sign.update(true,false);
-              } catch (Exception exc) {}
+              }
+              sign.update(true,false);
             }
           }
           craft.getRawTrackedMap().clear();
@@ -202,9 +204,11 @@ public class PlayerListener implements Listener {
             for (Block block : craft.getBlockName("SIGN")) {
               Sign sign = (Sign)block.getState();
               try {
+                sign.setWaxed(true);
+              } catch (Exception exc) {
                 sign.setEditable(false);
-                sign.update(true,false);
-              } catch (Exception exc) {}
+              }
+              sign.update(true,false);
             }
             for (MovecraftLocation loc : fullBox.boundingHitBox()) {
               if (fullBox.contains(loc)) continue;
@@ -217,7 +221,7 @@ public class PlayerListener implements Listener {
             }
           }
           if (player != null) Movecraft.getInstance().getLogger().info(player.getName()+"'s Craft ("+craft+") Internal Air-Hitbox Size: "+interior.size());
-          else Movecraft.getInstance().getLogger().info("N/A's Craft ("+craft+") Internal Air-Hitbox Size: "+interior.size());
+          else Movecraft.getInstance().getLogger().info("NULL's Craft ("+craft+") Internal Air-Hitbox Size: "+interior.size());
           craft.setDataTag("origin_size",craft.getHitBox().size()-interior.size());
           craft.setTrackedMovecraftLocs("air",interior.asSet());
           craft.setHitBox(fullBox);
@@ -226,7 +230,7 @@ public class PlayerListener implements Listener {
     }
 
     @EventHandler
-    public void onPLayerLogout(PlayerQuitEvent e) {
+    public void onPlayerLogout(PlayerQuitEvent e) {
         try {
           CraftManager.getInstance().forceRemoveCraft(CraftManager.getInstance().getCraftByPlayer(e.getPlayer()));
         } catch (Exception ex) {}
@@ -236,13 +240,7 @@ public class PlayerListener implements Listener {
     public void onPlayerLogout(PlayerQuitEvent e) {}
 
     @EventHandler
-    public void onPlayerDeath(EntityDamageByEntityEvent e) {  
-        if (true) return; // changed = death so when you shoot up an airship and hit the pilot, it still sinks
-        if (e instanceof Player) {
-            Player p = (Player) e;
-            //CraftManager.getInstance().removeCraft(CraftManager.getInstance().getCraftByPlayer(p), CraftReleaseEvent.Reason.DEATH);
-        }
-    }
+    public void onPlayerDeath(EntityDamageByEntityEvent e) {}
 
   @EventHandler
   public void onPlayerMove(PlayerMoveEvent event) {
@@ -253,16 +251,20 @@ public class PlayerListener implements Listener {
       return;
     int dx, dy, dz;
     dx = dy = dz = 0;
-    if (!MathUtils.locationNearHitBox((c.getHitBox()),p.getLocation(),2.0D)) {
-        //Movecraft.getInstance().getLogger().warning("Skipping Entity: "+p+", Not Aboard");
+    if (!MathUtils.locationNearHitBox((c.getHitBox()),p.getLocation(),15.0D)) {
         if (Settings.ManOverboardTimeout != 0) {
-          //p.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText("Manoverboard - Player has left craft"));
-          //CraftManager.getInstance().addOverboard(p);
+          p.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText("Manoverboard - Player has left craft"));
+          CraftManager.getInstance().addOverboard(p);
         } else {
-          //p.sendMessage(I18nSupport.getInternationalisedString("Release - Player has left craft"));
+          p.sendMessage(I18nSupport.getInternationalisedString("Release - Player has left craft"));
+          try {
+            CraftManager.getInstance().forceRemoveCraft(CraftManager.getInstance().getCraftByPlayer(e.getPlayer()));
+          } catch (Exception ex) {
+          }
         }
+        return;
     }
-    if (MathUtils.locationNearHitBox(c.getHitBox(), p.getLocation(), 2.0D)) {
+    if (MathUtils.locationNearHitBox(c.getHitBox(), p.getLocation(),2.0D)) {
       //this.timeToReleaseAfter.remove(c);
       if (!(CraftManager.getInstance().getCraftsInWorld(p.getWorld()).contains(c))) {
         return;

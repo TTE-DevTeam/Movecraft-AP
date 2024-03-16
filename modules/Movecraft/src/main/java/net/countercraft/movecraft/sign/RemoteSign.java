@@ -57,64 +57,12 @@ public final class RemoteSign implements Listener{
         }
     }
 
-    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
-    public void onBookClick(@NotNull PlayerInteractEvent event) {
-        if (event.isCancelled()) return;
-        String sid = "";
-        if ((event.getPlayer().getInventory().getItemInMainHand()).getType() == Material.BOOK) {
-            if ((event.getPlayer().getInventory().getItemInMainHand().hasItemMeta())) {
-                if (((ItemMeta)event.getPlayer().getInventory().getItemInMainHand().getItemMeta()).hasDisplayName()) {
-                    sid = (String)((ItemMeta)event.getPlayer().getInventory().getItemInMainHand().getItemMeta()).getDisplayName();
-                }
-            }
-        } else if ((event.getPlayer().getInventory().getItemInOffHand()).getType() == Material.BOOK) {
-            if ((event.getPlayer().getInventory().getItemInOffHand().hasItemMeta())) {
-                if (((ItemMeta)event.getPlayer().getInventory().getItemInOffHand().getItemMeta()).hasDisplayName()) {
-                    sid = (String)((ItemMeta)event.getPlayer().getInventory().getItemInOffHand().getItemMeta()).getDisplayName();
-                }
 
-            }
-        }
-        sid = ChatColor.stripColor(sid);
-        if (sid.equalsIgnoreCase("")) {
-            return;
-        }
-        BaseCraft foundCraft = null;
-        for (PlayerCraft tcraft : CraftManager.getInstance().getPlayerCraftsInWorld(event.getPlayer().getWorld())) {
-            if (MathUtils.locationNearHitBox(tcraft.getHitBox(), event.getPlayer().getLocation(), 15)) {
-                // don't use a craft with a null player. This is
-                // mostly to avoid trying to use subcrafts
-                if (event.getPlayer() == null) continue;
-                if (tcraft == null) continue;
-                if (!((BaseCraft)tcraft).hasPassenger(event.getPlayer())) continue;
-                foundCraft = (BaseCraft)tcraft;
-                break;
-            }
-        }
-        if (foundCraft != null) {
-            World craftWorld = foundCraft.getWorld();
-            event.setCancelled(true);
-            for (Block b : (foundCraft).getBlockName("SIGN")) {
-                if ((ChatColor.stripColor(((Sign)b.getState()).getLine(0)).equalsIgnoreCase(HEADER) || ChatColor.stripColor(((Sign)b.getState()).getLine(0)).equalsIgnoreCase(NODE_HEADER))) continue;
-                if (isForbidden((Sign)b.getState())) continue;
-                if (isEqualSignIgnoreHeader((Sign)b.getState(), sid)) {
-                    PlayerInteractEvent newEvent = new PlayerInteractEvent(event.getPlayer(), event.getAction(), AIR_STACK, b, event.getBlockFace());
-                    Bukkit.getServer().getPluginManager().callEvent(newEvent);
-                }
-            }
-        }
-    }
-
-
-    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = false)
     public void onSignClick(@NotNull PlayerInteractEvent event) {
-        if (event.isCancelled()) return;
         if (event.getAction() != Action.RIGHT_CLICK_BLOCK && event.getAction() != Action.LEFT_CLICK_BLOCK) {
             return;
         }
-        if (event.getItem() == null) return;
-        if (event.getItem().getType() == Material.AIR) return;
-        if (event.getItem().getType() == Material.BOOK) return;
         BlockState state = event.getClickedBlock().getState();
         if (!(state instanceof Sign)) {
             return;
@@ -160,7 +108,7 @@ public final class RemoteSign implements Listener{
                 continue;
             }
             Sign ts = (Sign) tstate;
-            if (counter >= Settings.MaxRemoteSigns && Settings.MaxRemoteSigns < 0) continue;
+            if (counter >= Settings.MaxRemoteSigns && Settings.MaxRemoteSigns > 0) continue;
             if (isEqualSign(ts, targetText)) {
                 if (!isForbidden(ts)) {
                     counter++;

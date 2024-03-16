@@ -649,17 +649,24 @@ public class AsyncManager extends BukkitRunnable {
                             origin_engine += (((bcraft).getBlockType(mat)).size());
                         }
                     }
-                    bcraft.setDataTag("origin_engine", (int)(origin_engine));
+                    bcraft.setDataTag("origin_engine", (origin_engine));
                 } else {
                     origin_engine = ((Integer)bcraft.getDataTag("origin_engine"));
                 }
                 if (!(bcraft.getSinking())) {
                     for(RequiredBlockEntry entry : craft.getType().getRequiredBlockProperty(CraftType.FLY_BLOCKS)) {
-                        //if(!entry.check(flyBlocks.get(entry), totalNonNegligibleBlocks, sinkPercent))
                         for (Material mat : entry.getMaterials()) {
-                            current_lift += (((bcraft).getBlockType(mat)).size());
+                            if (mat == Material.NOTE_BLOCK) {
+                                current_lift += (((bcraft).getBlockData(mat.createBlockData("[instrument=pling,note=2,powered=false]"))).size());
+                                current_lift += (((bcraft).getBlockData(mat.createBlockData("[instrument=pling,note=7,powered=false]"))).size());
+                                current_lift += (((bcraft).getBlockData(mat.createBlockData("[instrument=pling,note=8,powered=false]"))).size());
+                                current_lift += (((bcraft).getBlockData(mat.createBlockData("[instrument=pling,note=9,powered=false]"))).size());
+                            } else {
+                                current_lift += (((bcraft).getBlockType(mat)).size());
+                            }
                         }
                     }
+                    bcraft.setDataTag("current_lift", (int)(current_lift));
                     if (craft.isNotProcessing() || !(bcraft.getSinking())) {
                         if ((float)current_lift < ((float)origin_lift)*((float)sinkPercent)) {
                             isSinking = true;
@@ -668,7 +675,6 @@ public class AsyncManager extends BukkitRunnable {
                 }
                 if (!(bcraft.getDisabled()) && disabledPercent > 0.0d) {
                     for(RequiredBlockEntry entry : craft.getType().getRequiredBlockProperty(CraftType.MOVE_BLOCKS)) {
-                        //if(!entry.check(flyBlocks.get(entry), totalNonNegligibleBlocks, sinkPercent))
                         for (Material mat : entry.getMaterials()) {
                             current_engine += (((bcraft).getBlockType(mat)).size());
                         }
@@ -678,6 +684,7 @@ public class AsyncManager extends BukkitRunnable {
                             isDisabled = true;
                         }
                     }
+                    bcraft.setDataTag("current_engine", (int)(current_engine));
                 }
                 if (!(bcraft.getSinking())) {
                     double overall_sink_percent = 0d;
@@ -685,10 +692,10 @@ public class AsyncManager extends BukkitRunnable {
                         overall_sink_percent = craft.getType().getDoubleProperty(CraftType.OVERALL_SINK_PERCENT);
                     if (craft.getType().getDoubleProperty(CraftType.OVERALL_SINK_PERCENT) > 2.0d)
                         overall_sink_percent = ((double)craft.getType().getDoubleProperty(CraftType.OVERALL_SINK_PERCENT)/100);
-                    int origin_overall_size = (Integer)bcraft.getDataTag("origin_size");
-                    int current_overall_size = bcraft.getHitBox().size()-(bcraft.getTrackedMovecraftLocs("air")).size();
+                    int origin_overall_size = (int)bcraft.getDataTag("origin_size");
+                    int current_overall_size = origin_overall_size-(bcraft.getTrackedMovecraftLocs("air")).size();
                     if (overall_sink_percent > 0d) {
-                        if ((double)current_overall_size < ((double)origin_overall_size)*((double)overall_sink_percent)) {
+                        if ((double)origin_overall_size > ((double)current_overall_size)*((double)overall_sink_percent)) {
                             try {
                                 if (bcraft.getNotificationPlayer() != null) bcraft.getNotificationPlayer().sendActionBar(ChatColor.RED+"BLOCKS :"+ChatColor.RESET+"[ "+ChatColor.DARK_RED+current_overall_size+ChatColor.RESET+" / "+ChatColor.RED+ChatColor.BOLD+origin_overall_size+ChatColor.RESET+" ]");
                             } catch (Exception exc) {}
@@ -704,26 +711,8 @@ public class AsyncManager extends BukkitRunnable {
                         } catch (Exception exc) {}
                     }
                 }
-
-              /*ArrayList<Block> FLY_BLOCKS = new ArrayList<>();
-              for(RequiredBlockEntry entry : craft.getType().getRequiredBlockProperty(CraftType.FLY_BLOCKS)) {
-                //if(!entry.check(flyBlocks.get(entry), totalNonNegligibleBlocks, sinkPercent))
-                for (Material mat : entry.getMaterials()) {
-                    FLY_BLOCKS.addAll(((bcraft).getBlockType(mat)));
-                }
-              }
-              ArrayList<Block> MOVE_BLOCKS = new ArrayList<>();
-              for(RequiredBlockEntry entry : craft.getType().getRequiredBlockProperty(CraftType.MOVE_BLOCKS)) {
-                //if(!entry.check(flyBlocks.get(entry), totalNonNegligibleBlocks, sinkPercent))
-                for (Material mat : entry.getMaterials()) {
-                    MOVE_BLOCKS.addAll(((bcraft).getBlockType(mat)));
-                }
-              }*/
             }
         }
-        // And check the OverallSinkPercent
-        //craft.updateMaterials(materials);
-        //craft.setTotalFuel(fuel);
 
         return CraftStatus.of(isSinking, isDisabled);
     }

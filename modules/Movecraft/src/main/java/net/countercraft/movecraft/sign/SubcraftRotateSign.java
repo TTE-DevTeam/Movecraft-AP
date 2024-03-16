@@ -98,11 +98,6 @@ public final class SubcraftRotateSign implements Listener {
                 event.setCancelled(true);
                 return;
             }
-            //if (!CraftManager.getInstance().getCraftFromBlock(event.getClickedBlock()).isNotProcessing()) {
-            //    event.getPlayer().sendMessage("You are already Moving");
-            //    event.setCancelled(true);
-            //    return;
-            //}
         }
         rotating.add(startPoint);
         CraftManager.getInstance().detect(

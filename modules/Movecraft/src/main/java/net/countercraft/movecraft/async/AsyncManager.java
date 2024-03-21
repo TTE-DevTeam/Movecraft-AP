@@ -693,9 +693,12 @@ public class AsyncManager extends BukkitRunnable {
                     if (craft.getType().getDoubleProperty(CraftType.OVERALL_SINK_PERCENT) > 2.0d)
                         overall_sink_percent = ((double)craft.getType().getDoubleProperty(CraftType.OVERALL_SINK_PERCENT)/100);
                     int origin_overall_size = (int)bcraft.getDataTag("origin_size");
-                    int current_overall_size = origin_overall_size-(bcraft.getTrackedMovecraftLocs("air")).size();
+                    int current_overall_size = (int)bcraft.getHitBox().size()-(bcraft.getRelativeTrackedLocs("air")).size();
+                    if (current_overall_size > origin_overall_size) {
+                        current_overall_size = origin_overall_size;
+                    }
                     if (overall_sink_percent > 0d) {
-                        if ((double)origin_overall_size > ((double)current_overall_size)*((double)overall_sink_percent)) {
+                        if ((double)current_overall_size < ((double)origin_overall_size)*((double)overall_sink_percent)) {
                             try {
                                 if (bcraft.getNotificationPlayer() != null) bcraft.getNotificationPlayer().sendActionBar(ChatColor.RED+"BLOCKS :"+ChatColor.RESET+"[ "+ChatColor.DARK_RED+current_overall_size+ChatColor.RESET+" / "+ChatColor.RED+ChatColor.BOLD+origin_overall_size+ChatColor.RESET+" ]");
                             } catch (Exception exc) {}

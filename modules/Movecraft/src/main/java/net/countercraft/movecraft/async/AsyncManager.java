@@ -693,7 +693,7 @@ public class AsyncManager extends BukkitRunnable {
                     if (craft.getType().getDoubleProperty(CraftType.OVERALL_SINK_PERCENT) > 2.0d)
                         overall_sink_percent = ((double)craft.getType().getDoubleProperty(CraftType.OVERALL_SINK_PERCENT)/100);
                     int origin_overall_size = (int)bcraft.getDataTag("origin_size");
-                    int current_overall_size = (int)bcraft.getHitBox().size()-(bcraft.getRelativeTrackedLocs("air")).size();
+                    int current_overall_size = (int)bcraft.getHitBox().size()-(bcraft.getTrackedLocations("air")).size();
                     if (current_overall_size > origin_overall_size) {
                         current_overall_size = origin_overall_size;
                     }

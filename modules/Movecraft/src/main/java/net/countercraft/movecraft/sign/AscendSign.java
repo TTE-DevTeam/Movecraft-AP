@@ -41,7 +41,7 @@ public class AscendSign implements Listener {
     }
 
 
-    @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = false)
+    @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onSignClickEvent(@NotNull PlayerInteractEvent event){
         if (event.getAction() != Action.RIGHT_CLICK_BLOCK) {
             return;
@@ -50,9 +50,10 @@ public class AscendSign implements Listener {
         if (!(block.getState() instanceof Sign)){
             return;
         }
-        Sign sign = (Sign) event.getClickedBlock().getState();
+
+        Sign sign = (Sign) block.getState();
         if (ChatColor.stripColor(sign.getLine(0)).equalsIgnoreCase("Ascend: OFF")) {
-            //event.setCancelled(true);
+            event.setCancelled(true);
             if (CraftManager.getInstance().getCraftByPlayer(event.getPlayer()) == null) {
                 return;
             }
@@ -77,12 +78,12 @@ public class AscendSign implements Listener {
         if (!ChatColor.stripColor(sign.getLine(0)).equalsIgnoreCase("Ascend: ON")) {
             return;
         }
+        event.setCancelled(true);
         Craft c = CraftManager.getInstance().getCraftByPlayer(event.getPlayer());
         if (c == null || !c.getType().getBoolProperty(CraftType.CAN_CRUISE)) {
             return;
         }
         sign.setLine(0, "Ascend: OFF");
-        event.setCancelled(true);
         sign.update(true);
 
         c.setCruising(false);

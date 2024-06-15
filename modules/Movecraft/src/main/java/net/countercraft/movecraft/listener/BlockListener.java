@@ -19,14 +19,13 @@ package net.countercraft.movecraft.listener;
 
 import net.countercraft.movecraft.MovecraftLocation;
 import net.countercraft.movecraft.config.Settings;
-import net.countercraft.movecraft.craft.*;
+import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.craft.CraftManager;
-import net.countercraft.movecraft.localisation.I18nSupport;
 import net.countercraft.movecraft.craft.PilotedCraft;
 import net.countercraft.movecraft.craft.type.CraftType;
 import net.countercraft.movecraft.util.MathUtils;
 import net.countercraft.movecraft.util.Tags;
-import org.bukkit.Bukkit;
+import net.countercraft.movecraft.util.hitboxes.BitmapHitBox;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -38,31 +37,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.World;
-import org.bukkit.block.Block;
-import org.bukkit.block.BlockFace;
-import org.bukkit.block.BlockState;
-import org.bukkit.block.Container;
-import org.bukkit.block.data.BlockData;
-import org.bukkit.block.data.Directional;
-import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.BlockInventoryHolder;
-import org.bukkit.inventory.InventoryHolder;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.World;
-import org.bukkit.block.Block;
-import org.bukkit.block.Sign;
-import org.bukkit.block.data.BlockData;
-import org.bukkit.entity.Player;
-import org.bukkit.entity.Entity;
-import org.bukkit.OfflinePlayer;
-import org.bukkit.entity.Player;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockDispenseEvent;
 import org.bukkit.event.block.BlockFormEvent;
@@ -70,11 +44,11 @@ import org.bukkit.event.block.BlockFromToEvent;
 import org.bukkit.event.block.BlockPhysicsEvent;
 import org.bukkit.event.block.BlockPistonExtendEvent;
 import org.bukkit.event.block.BlockRedstoneEvent;
+import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.ItemSpawnEvent;
 import org.bukkit.event.inventory.InventoryMoveItemEvent;
 import org.bukkit.material.Attachable;
-import org.bukkit.event.block.BlockExplodeEvent;
-import org.bukkit.event.entity.EntityExplodeEvent;
+import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 
 public class BlockListener implements Listener {
@@ -255,9 +229,9 @@ public class BlockListener implements Listener {
     public void onIceForm(@NotNull BlockFormEvent e) {
         if (!Settings.DisableIceForm)
             return;
-        }
-        if(e.getBlock().getType() != Material.WATER)
+        if (Tags.WATER.contains(e.getBlock().getType()))
             return;
+
         Location location = e.getBlock().getLocation();
         MovecraftLocation loc = MathUtils.bukkit2MovecraftLoc(location);
         for (Craft craft : MathUtils.craftsNearLocFast(CraftManager.getInstance().getCrafts(), location)) {
@@ -266,25 +240,6 @@ public class BlockListener implements Listener {
 
             e.setCancelled(true);
             return;
-        }
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onBlockExplode(BlockExplodeEvent e) {
-        if (e.isCancelled()) {
-            return;
-        }
-        BaseCraft craft = null;
-        if (CraftManager.getInstance().fastNearestCraftToLoc(e.getBlock().getLocation()) != null) {
-            if (CraftManager.getInstance().fastNearestCraftToLoc(e.getBlock().getLocation()) instanceof BaseCraft) {
-                craft = (BaseCraft)CraftManager.getInstance().fastNearestCraftToLoc(e.getBlock().getLocation());
-            }
-        }
-        for (Block block : e.blockList()) {
-            if (!block.getType().isSolid()) continue;
-            if (craft != null) {
-                craft.removeBlock(block);
-            }
         }
     }
 }

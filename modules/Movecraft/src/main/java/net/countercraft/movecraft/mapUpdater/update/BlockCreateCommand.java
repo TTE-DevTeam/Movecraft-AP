@@ -48,10 +48,10 @@ public class BlockCreateCommand extends UpdateCommand {
 
         //Do comperator stuff
 
-        if (newBlockLocation.toBukkit(world).getBlock().getType() == Material.COMPARATOR) { // for some reason comparators are flakey, have to do it twice sometimes
+        if (data.getMaterial() == Material.COMPARATOR) { // for some reason comparators are flakey, have to do it twice sometimes
             Block b = newBlockLocation.toBukkit(world).getBlock();
             if (b.getType() != Material.COMPARATOR) {
-                b.setType(newBlockLocation.toBukkit(world).getBlock().getType(), false);
+                b.setType(data.getMaterial(), false);
             }
         }
 

@@ -39,7 +39,7 @@ public final class DescendSign implements Listener{
         }
     }
 
-    @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = false)
+    @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onSignClick(@NotNull PlayerInteractEvent event) {
         if (event.getAction() != Action.RIGHT_CLICK_BLOCK) {
             return;
@@ -50,6 +50,7 @@ public final class DescendSign implements Listener{
         }
         Sign sign = (Sign) state;
         if (ChatColor.stripColor(sign.getLine(0)).equalsIgnoreCase("Descend: OFF")) {
+            event.setCancelled(true);
             if (CraftManager.getInstance().getCraftByPlayer(event.getPlayer()) == null) {
                 return;
             }
@@ -72,6 +73,7 @@ public final class DescendSign implements Listener{
             return;
         }
         if (ChatColor.stripColor(sign.getLine(0)).equalsIgnoreCase("Descend: ON")) {
+            event.setCancelled(true);
             Craft c = CraftManager.getInstance().getCraftByPlayer(event.getPlayer());
             if (c != null && c.getType().getBoolProperty(CraftType.CAN_CRUISE)) {
                 sign.setLine(0, "Descend: OFF");

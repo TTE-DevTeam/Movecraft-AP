@@ -37,6 +37,6 @@ public class PilotSignValidator implements DetectionPredicate<MovecraftLocation>
                 break;
             }
         }
-        return foundPilot || (player.hasPermission("movecraft.admin.bypasslock")) ? Result.succeed() : Result.failWithMessage(I18nSupport.getInternationalisedString("Detection - Not Registered Pilot"));
+        return foundPilot || (player.hasPermission("movecraft.bypasslock")) ? Result.succeed() : Result.failWithMessage(I18nSupport.getInternationalisedString("Detection - Not Registered Pilot"));
     }
 }

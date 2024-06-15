@@ -21,7 +21,6 @@ import com.google.common.collect.Lists;
 import net.countercraft.movecraft.CruiseDirection;
 import net.countercraft.movecraft.Movecraft;
 import net.countercraft.movecraft.MovecraftLocation;
-import net.countercraft.movecraft.events.CraftScuttleEvent;
 import net.countercraft.movecraft.async.rotation.RotationTask;
 import net.countercraft.movecraft.async.translation.TranslationTask;
 import net.countercraft.movecraft.config.Settings;
@@ -30,12 +29,10 @@ import net.countercraft.movecraft.craft.CraftManager;
 import net.countercraft.movecraft.craft.CraftStatus;
 import net.countercraft.movecraft.craft.PilotedCraft;
 import net.countercraft.movecraft.craft.PlayerCraft;
-import net.countercraft.movecraft.craft.BaseCraft;
 import net.countercraft.movecraft.craft.SinkingCraft;
 import net.countercraft.movecraft.craft.type.CraftType;
 import net.countercraft.movecraft.craft.type.RequiredBlockEntry;
 import net.countercraft.movecraft.events.CraftReleaseEvent;
-import net.countercraft.movecraft.events.CraftSinkEvent;
 import net.countercraft.movecraft.exception.EmptyHitBoxException;
 import net.countercraft.movecraft.localisation.I18nSupport;
 import net.countercraft.movecraft.mapUpdater.MapUpdateManager;
@@ -49,10 +46,8 @@ import net.kyori.adventure.sound.Sound;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.World;
-import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.InventoryHolder;
@@ -160,7 +155,8 @@ public class AsyncManager extends BukkitRunnable {
 
         if (task.failed()) {
             // The craft translation failed
-            if (!(c.getSinking())) c.getAudience().sendMessage(Component.text(task.getFailMessage()));
+            if (!(c instanceof SinkingCraft))
+                c.getAudience().sendMessage(Component.text(task.getFailMessage()));
 
             if (task.isCollisionExplosion()) {
                 c.setHitBox(task.getNewHitBox());
@@ -187,10 +183,9 @@ public class AsyncManager extends BukkitRunnable {
      */
     private boolean processRotation(@NotNull final RotationTask task, @NotNull final Craft c) {
         // Check that the craft hasn't been sneakily unpiloted
-        if (!(c instanceof PilotedCraft) && !task.getIsSubCraft()) {
-            if ((c.getNotificationPlayer() == null))
-                return false;
-        }
+        if (!(c instanceof PilotedCraft) && !task.getIsSubCraft())
+            return false;
+
         if (task.isFailed()) {
             // The craft translation failed, don't try to notify
             // them if there is no pilot
@@ -333,15 +328,15 @@ public class AsyncManager extends BukkitRunnable {
 
     private void detectSinking(){
         for(Craft craft : CraftManager.getInstance()) {
-            if (craft.getSinking())
+            if (craft instanceof SinkingCraft)
                 continue;
-            if (craft.getType().getDoubleProperty(CraftType.SINK_PERCENT) < 0.0 || !craft.isNotProcessing())
+            if (craft.getType().getDoubleProperty(CraftType.SINK_PERCENT) == 0.0 || !craft.isNotProcessing())
                 continue;
             long ticksElapsed = (System.currentTimeMillis() - craft.getLastBlockCheck()) / 50;
 
             if (ticksElapsed <= Settings.SinkCheckTicks)
                 continue;
-            //if (craft instanceof BaseCraft) ((BaseCraft)craft).removeMaterial(Material.AIR);
+
             CraftStatus status = checkCraftStatus(craft);
             //If the craft is disabled, play a sound and disable it.
             //Only do this if the craft isn't already disabled.
@@ -354,13 +349,12 @@ public class AsyncManager extends BukkitRunnable {
             // if the craft is sinking, let the player
             // know and release the craft. Otherwise
             // update the time for the next check
-            if (status.isSinking()) {
+            if (status.isSinking() && craft.isNotProcessing()) {
                 craft.getAudience().sendMessage(I18nSupport.getInternationalisedComponent("Player - Craft is sinking"));
                 craft.setCruising(false);
-                craft.setAudience(Movecraft.getAdventure().console());
-                craft.setSinking(true);
-                Bukkit.getPluginManager().callEvent(new CraftSinkEvent(craft));
-            } else {
+                CraftManager.getInstance().sink(craft);
+            }
+            else {
                 craft.setLastBlockCheck(System.currentTimeMillis());
             }
         }
@@ -369,14 +363,15 @@ public class AsyncManager extends BukkitRunnable {
     //Controls sinking crafts
     private void processSinking() {
         //copy the crafts before iteration to prevent concurrent modifications
-        List<Craft> crafts = Lists.newArrayList(CraftManager.getInstance().getCraftList());
-        for (final Craft craft : crafts) {
-            if (!craft.getSinking()) continue;
-            if (craft.getHitBox().isEmpty() || craft.getHitBox().getMinY() < craft.getWorld().getMinHeight()+10 || craft.getHitBox().getMinY() <= craft.getType().getIntProperty(CraftType.MIN_HEIGHT_LIMIT)) {
+        List<Craft> crafts = Lists.newArrayList(CraftManager.getInstance());
+        for (Craft craft : crafts) {
+            if (!(craft instanceof SinkingCraft))
+                continue;
+
+            if (craft.getHitBox().isEmpty() || craft.getHitBox().getMinY() < 5) {
                 CraftManager.getInstance().release(craft, CraftReleaseEvent.Reason.SUNK, false);
                 continue;
             }
-            int startingY = craft.getHitBox().getMidPoint().getY();
             long ticksElapsed = (System.currentTimeMillis() - craft.getLastCruiseUpdate()) / 50;
             if (Math.abs(ticksElapsed) < craft.getType().getIntProperty(CraftType.SINK_RATE_TICKS))
                 continue;
@@ -387,8 +382,8 @@ public class AsyncManager extends BukkitRunnable {
                 dx = craft.getLastTranslation().getX();
                 dz = craft.getLastTranslation().getZ();
             }
+            craft.translate(dx, -1, dz);
             craft.setLastCruiseUpdate(System.currentTimeMillis());
-            craft.translate(dx,-1,dz);
         }
     }
 
@@ -429,7 +424,7 @@ public class AsyncManager extends BukkitRunnable {
 
                 fadedBlocks++;
                 processedFadeLocs.get(world).add(location);
-                BlockData phaseBlock = phaseBlocks.getOrDefault(bLoc, Movecraft.getInstance().getAirBlockData());
+                BlockData phaseBlock = phaseBlocks.getOrDefault(bLoc, Material.AIR.createBlockData());
                 commands.add(new BlockCreateCommand(world, location, phaseBlock));
             }
             MapUpdateManager.getInstance().scheduleUpdates(commands);
@@ -563,8 +558,6 @@ public class AsyncManager extends BukkitRunnable {
         // now cleanup craft that are bugged and have not moved in the past 60 seconds,
         //  but have no pilot or are still processing
         for (Craft craft : CraftManager.getInstance()) {
-            if (craft.getNotificationPlayer() == null)
-                continue;
             if (!(craft instanceof PilotedCraft)) {
                 if (craft.getLastCruiseUpdate() < System.currentTimeMillis() - 60000)
                     CraftManager.getInstance().release(craft, CraftReleaseEvent.Reason.INACTIVE, true);
@@ -595,135 +588,88 @@ public class AsyncManager extends BukkitRunnable {
         boolean isDisabled = false;
 
         // Create counters and populate with required block entries
+        Counter<RequiredBlockEntry> flyBlocks = new Counter<>();
+        flyBlocks.putAll(craft.getType().getRequiredBlockProperty(CraftType.FLY_BLOCKS));
+        Counter<RequiredBlockEntry> moveBlocks = new Counter<>();
+        moveBlocks.putAll(craft.getType().getRequiredBlockProperty(CraftType.MOVE_BLOCKS));
 
-        if (craft.getOrigBlockCount()>=256000) {
-            return CraftStatus.of(false, false);
+        Counter<Material> materials = new Counter<>();
+        var v = craft.getType().getObjectProperty(CraftType.FUEL_TYPES);
+        if(!(v instanceof Map<?, ?>))
+            throw new IllegalStateException("FUEL_TYPES must be of type Map");
+        var fuelTypes = (Map<?, ?>) v;
+        for(var e : fuelTypes.entrySet()) {
+            if(!(e.getKey() instanceof Material))
+                throw new IllegalStateException("Keys in FUEL_TYPES must be of type Material");
+            if(!(e.getValue() instanceof Double))
+                throw new IllegalStateException("Values in FUEL_TYPES must be of type Double");
         }
 
         // go through each block in the HitBox, and if it's in the FlyBlocks or MoveBlocks, increment the counter
         int totalNonNegligibleBlocks = 0;
         int totalNonNegligibleWaterBlocks = 0;
-        double fuel = 0.0d;
+        double fuel = 0;
+        for (MovecraftLocation l : craft.getHitBox()) {
+            Material type = craft.getWorld().getBlockAt(l.getX(), l.getY(), l.getZ()).getType();
+            for(RequiredBlockEntry entry : flyBlocks.getKeySet()) {
+                if(entry.contains(type))
+                    flyBlocks.add(entry);
+            }
+            for(RequiredBlockEntry entry : moveBlocks.getKeySet()) {
+                if(entry.contains(type))
+                    moveBlocks.add(entry);
+            }
+            materials.add(type);
+
+            if (type != Material.FIRE && !type.isAir()) {
+                totalNonNegligibleBlocks++;
+            }
+            if (type != Material.FIRE && !type.isAir() && !Tags.FLUID.contains(type)) {
+                totalNonNegligibleWaterBlocks++;
+            }
+
+            if(Tags.FURNACES.contains(type)) {
+                InventoryHolder inventoryHolder = (InventoryHolder) craft.getWorld().getBlockAt(l.getX(), l.getY(), l.getZ()).getState();
+                for (ItemStack iStack : inventoryHolder.getInventory()) {
+                    if (iStack == null || !fuelTypes.containsKey(iStack.getType()))
+                        continue;
+                    fuel += iStack.getAmount() * (double) fuelTypes.get(iStack.getType());
+                }
+            }
+        }
 
         // now see if any of the resulting percentages
         // are below the threshold specified in sinkPercent
-        double sinkPercent = 0.725d;
-        if (craft.getType().getDoubleProperty(CraftType.SINK_PERCENT) > 0.0d)
-            sinkPercent = craft.getType().getDoubleProperty(CraftType.SINK_PERCENT);
-        if (craft.getType().getDoubleProperty(CraftType.SINK_PERCENT) > 1.0d)
-            sinkPercent = ((double)craft.getType().getDoubleProperty(CraftType.SINK_PERCENT)/100);
-        double disabledPercent = 0.0d;
-        if (craft.getType().getDoubleProperty(CraftType.DISABLE_PERCENT) > 0.0d)
-            disabledPercent = craft.getType().getDoubleProperty(CraftType.DISABLE_PERCENT);
-        if (craft.getType().getDoubleProperty(CraftType.DISABLE_PERCENT) > 1.0d)
-            disabledPercent = ((double)craft.getType().getDoubleProperty(CraftType.DISABLE_PERCENT)/100);
-        int current_lift = 0;
-        int current_engine = 0;
-        if (!(craft instanceof SinkingCraft)) {
-            if (craft instanceof BaseCraft) {
-                int origin_lift = 0;
-                int origin_engine = 0;
-                BaseCraft bcraft = (BaseCraft)craft;
-                if (bcraft.getDataTag("origin_lift") == null) {
-                    origin_lift = 0;
-                    for(RequiredBlockEntry entry : craft.getType().getRequiredBlockProperty(CraftType.FLY_BLOCKS)) {
-                        for (Material mat : entry.getMaterials()) {
-                            if (mat == Material.NOTE_BLOCK) {
-                                origin_lift += (((bcraft).getBlockData(mat.createBlockData("[instrument=pling,note=2,powered=false]"))).size());
-                                origin_lift += (((bcraft).getBlockData(mat.createBlockData("[instrument=pling,note=7,powered=false]"))).size());
-                                origin_lift += (((bcraft).getBlockData(mat.createBlockData("[instrument=pling,note=8,powered=false]"))).size());
-                                origin_lift += (((bcraft).getBlockData(mat.createBlockData("[instrument=pling,note=9,powered=false]"))).size());
-                            } else {
-                                origin_lift += (((bcraft).getBlockType(mat)).size());
-                            }
-                        }
-                    }
-                    bcraft.setDataTag("origin_lift", (int)(origin_lift));
-                } else {
-                    origin_lift = ((Integer)bcraft.getDataTag("origin_lift"));
-                }
-                if (bcraft.getDataTag("origin_engine") == null) {
-                    origin_engine = 0;
-                    for(RequiredBlockEntry entry : craft.getType().getRequiredBlockProperty(CraftType.MOVE_BLOCKS)) {
-                        for (Material mat : entry.getMaterials()) {
-                            origin_engine += (((bcraft).getBlockType(mat)).size());
-                        }
-                    }
-                    bcraft.setDataTag("origin_engine", (int)(origin_engine));
-                } else {
-                    origin_engine = ((Integer)bcraft.getDataTag("origin_engine"));
-                }
-                if (!(bcraft.getSinking())) {
-                    for(RequiredBlockEntry entry : craft.getType().getRequiredBlockProperty(CraftType.FLY_BLOCKS)) {
-                        //if(!entry.check(flyBlocks.get(entry), totalNonNegligibleBlocks, sinkPercent))
-                        for (Material mat : entry.getMaterials()) {
-                            current_lift += (((bcraft).getBlockType(mat)).size());
-                        }
-                    }
-                    if (craft.isNotProcessing() || !(bcraft.getSinking())) {
-                        if ((float)current_lift < ((float)origin_lift)*((float)sinkPercent)) {
-                            isSinking = true;
-                        }
-                    }
-                }
-                if (!(bcraft.getDisabled()) && disabledPercent > 0.0d) {
-                    for(RequiredBlockEntry entry : craft.getType().getRequiredBlockProperty(CraftType.MOVE_BLOCKS)) {
-                        //if(!entry.check(flyBlocks.get(entry), totalNonNegligibleBlocks, sinkPercent))
-                        for (Material mat : entry.getMaterials()) {
-                            current_engine += (((bcraft).getBlockType(mat)).size());
-                        }
-                    }
-                    if (craft.isNotProcessing() || !(bcraft.getDisabled())) {
-                        if ((float)current_engine < ((float)current_engine)*((float)disabledPercent)) {
-                            isDisabled = true;
-                        }
-                    }
-                }
-                if (!(bcraft.getSinking())) {
-                    double overall_sink_percent = 0d;
-                    if (craft.getType().getDoubleProperty(CraftType.OVERALL_SINK_PERCENT) > 0.0d)
-                        overall_sink_percent = craft.getType().getDoubleProperty(CraftType.OVERALL_SINK_PERCENT);
-                    if (craft.getType().getDoubleProperty(CraftType.OVERALL_SINK_PERCENT) > 2.0d)
-                        overall_sink_percent = ((double)craft.getType().getDoubleProperty(CraftType.OVERALL_SINK_PERCENT)/100);
-                    int origin_overall_size = (Integer)bcraft.getDataTag("origin_size");
-                    int current_overall_size = bcraft.getHitBox().size()-(bcraft.getTrackedMovecraftLocs("air")).size();
-                    if (overall_sink_percent > 0d) {
-                        if ((double)current_overall_size < ((double)origin_overall_size)*((double)overall_sink_percent)) {
-                            try {
-                                if (bcraft.getNotificationPlayer() != null) bcraft.getNotificationPlayer().sendActionBar(ChatColor.RESET+"[ "+ChatColor.DARK_RED+current_overall_size+ChatColor.RESET+" / "+ChatColor.RED+ChatColor.BOLD+origin_overall_size+ChatColor.RESET+" ]");
-                            } catch (Exception exc) {}
-                            isSinking = true;
-                        } else {
-                            try {
-                                if (bcraft.getNotificationPlayer() != null) bcraft.getNotificationPlayer().sendActionBar(ChatColor.RESET+"[ "+ChatColor.DARK_AQUA+current_overall_size+ChatColor.RESET+" / "+ChatColor.AQUA+ChatColor.BOLD+origin_overall_size+ChatColor.RESET+" ]");
-                            } catch (Exception exc) {}
-                        }
-                    } else {
-                        try {
-                            if (bcraft.getNotificationPlayer() != null) bcraft.getNotificationPlayer().sendActionBar(ChatColor.RESET+"[ "+ChatColor.DARK_AQUA+current_overall_size+ChatColor.RESET+" / "+ChatColor.AQUA+ChatColor.BOLD+origin_overall_size+ChatColor.RESET+" ]");
-                        } catch (Exception exc) {}
-                    }
-                }
-
-              /*ArrayList<Block> FLY_BLOCKS = new ArrayList<>();
-              for(RequiredBlockEntry entry : craft.getType().getRequiredBlockProperty(CraftType.FLY_BLOCKS)) {
-                //if(!entry.check(flyBlocks.get(entry), totalNonNegligibleBlocks, sinkPercent))
-                for (Material mat : entry.getMaterials()) {
-                    FLY_BLOCKS.addAll(((bcraft).getBlockType(mat)));
-                }
-              }
-              ArrayList<Block> MOVE_BLOCKS = new ArrayList<>();
-              for(RequiredBlockEntry entry : craft.getType().getRequiredBlockProperty(CraftType.MOVE_BLOCKS)) {
-                //if(!entry.check(flyBlocks.get(entry), totalNonNegligibleBlocks, sinkPercent))
-                for (Material mat : entry.getMaterials()) {
-                    MOVE_BLOCKS.addAll(((bcraft).getBlockType(mat)));
-                }
-              }*/
-            }
+        double sinkPercent = craft.getType().getDoubleProperty(CraftType.SINK_PERCENT) / 100.0;
+        for(RequiredBlockEntry entry : flyBlocks.getKeySet()) {
+            if(!entry.check(flyBlocks.get(entry), totalNonNegligibleBlocks, sinkPercent))
+                isSinking = true;
         }
+        for(RequiredBlockEntry entry : moveBlocks.getKeySet()) {
+            if(!entry.check(moveBlocks.get(entry), totalNonNegligibleBlocks, sinkPercent))
+                isDisabled = !craft.getDisabled() && craft.isNotProcessing();
+        }
+
         // And check the OverallSinkPercent
-        //craft.updateMaterials(materials);
-        //craft.setTotalFuel(fuel);
+        if (craft.getType().getDoubleProperty(CraftType.OVERALL_SINK_PERCENT) != 0.0) {
+            double percent;
+            if (craft.getType().getBoolProperty(CraftType.BLOCKED_BY_WATER)) {
+                percent = (double) totalNonNegligibleBlocks
+                        / (double) craft.getOrigBlockCount();
+            }
+            else {
+                percent = (double) totalNonNegligibleWaterBlocks
+                        / (double) craft.getOrigBlockCount();
+            }
+            if (percent * 100.0 < craft.getType().getDoubleProperty(CraftType.OVERALL_SINK_PERCENT))
+                isSinking = true;
+        }
+
+        if (totalNonNegligibleBlocks == 0)
+            isSinking = true;
+
+        craft.updateMaterials(materials);
+        craft.setTotalFuel(fuel);
 
         return CraftStatus.of(isSinking, isDisabled);
     }

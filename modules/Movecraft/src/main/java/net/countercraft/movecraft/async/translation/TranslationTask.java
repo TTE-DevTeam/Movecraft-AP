@@ -7,7 +7,6 @@ import net.countercraft.movecraft.async.AsyncTask;
 import net.countercraft.movecraft.config.Settings;
 import net.countercraft.movecraft.craft.ChunkManager;
 import net.countercraft.movecraft.craft.Craft;
-import net.countercraft.movecraft.craft.BaseCraft;
 import net.countercraft.movecraft.craft.CraftManager;
 import net.countercraft.movecraft.craft.SinkingCraft;
 import net.countercraft.movecraft.craft.type.CraftType;
@@ -27,8 +26,6 @@ import net.countercraft.movecraft.mapUpdater.update.ExplosionUpdateCommand;
 import net.countercraft.movecraft.mapUpdater.update.ItemDropUpdateCommand;
 import net.countercraft.movecraft.mapUpdater.update.UpdateCommand;
 import net.countercraft.movecraft.util.Tags;
-import net.countercraft.movecraft.util.MathUtils;
-import net.countercraft.movecraft.util.WorldUtils;
 import net.countercraft.movecraft.util.hitboxes.HitBox;
 import net.countercraft.movecraft.util.hitboxes.MutableHitBox;
 import net.countercraft.movecraft.util.hitboxes.SolidHitBox;
@@ -53,7 +50,6 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -131,23 +127,14 @@ public class TranslationTask extends AsyncTask {
 
             // ensure chunks are loaded for portal checking only if change in location is
             // large
-            boolean ran = false;
-            if (!ran) {
-                final Set<MovecraftChunk> chunksToLoad = ChunkManager.getChunks(oldHitBox, craft.getWorld());
-                MovecraftChunk.addSurroundingChunks(chunksToLoad, 1);
-                ChunkManager.checkChunks(chunksToLoad);
-                if (!chunksToLoad.isEmpty())
-                    ChunkManager.addChunksToLoad(chunksToLoad);//.get()
-                chunksToLoad.clear();
-                chunksToLoad.addAll(ChunkManager.getChunks(oldHitBox, world, dx, dy, dz));
-                MovecraftChunk.addSurroundingChunks(chunksToLoad, 1);
-                ChunkManager.checkChunks(chunksToLoad);
-                if (!chunksToLoad.isEmpty())
-                    ChunkManager.addChunksToLoad(chunksToLoad);//.get()
-            }
-
+            Set<MovecraftChunk> chunksToLoad = ChunkManager.getChunks(oldHitBox, world, dx, dy, dz);
+            MovecraftChunk.addSurroundingChunks(chunksToLoad, 2);
+            ChunkManager.checkChunks(chunksToLoad);
+            if (!chunksToLoad.isEmpty())
+                ChunkManager.syncLoadChunks(chunksToLoad).get();
 
             for (MovecraftLocation oldLocation : oldHitBox) {
+
                 Location location = oldLocation.translate(dx, dy, dz).toBukkit(craft.getWorld());
                 Block block = craft.getWorld().getBlockAt(location);
                 if (block.getType() == Material.NETHER_PORTAL) {
@@ -165,25 +152,15 @@ public class TranslationTask extends AsyncTask {
 
         // ensure chunks are loaded only if world is different or change in location is
         // large
-
-        boolean ran = false;
-        if (!ran) {
-            final Set<MovecraftChunk> chunksToLoad = ChunkManager.getChunks(oldHitBox, craft.getWorld());
-            MovecraftChunk.addSurroundingChunks(chunksToLoad, 1);
-            ChunkManager.checkChunks(chunksToLoad);
-            if (!chunksToLoad.isEmpty())
-                ChunkManager.addChunksToLoad(chunksToLoad);//.get()
-            chunksToLoad.clear();
-            chunksToLoad.addAll(ChunkManager.getChunks(oldHitBox, world, dx, dy, dz));
-            MovecraftChunk.addSurroundingChunks(chunksToLoad, 1);
-            ChunkManager.checkChunks(chunksToLoad);
-            if (!chunksToLoad.isEmpty())
-                ChunkManager.addChunksToLoad(chunksToLoad);//.get()
-        }
+        Set<MovecraftChunk> chunksToLoad = ChunkManager.getChunks(oldHitBox, craft.getWorld());
+        chunksToLoad.addAll(ChunkManager.getChunks(oldHitBox, world, dx, dy, dz));
+        MovecraftChunk.addSurroundingChunks(chunksToLoad, 1);
+        ChunkManager.checkChunks(chunksToLoad);
+        if (!chunksToLoad.isEmpty())
+            ChunkManager.syncLoadChunks(chunksToLoad).get();
 
         // Only modify dy when not switching worlds
         //Check if the craft is too high
-
         if (world.equals(craft.getWorld())
                 && (int) craft.getType().getPerWorldProperty(CraftType.PER_WORLD_MAX_HEIGHT_LIMIT, craft.getWorld())
                 < craft.getHitBox().getMinY())
@@ -422,116 +399,51 @@ public class TranslationTask extends AsyncTask {
         updates.add(new CraftTranslateCommand(craft, new MovecraftLocation(dx, dy, dz), world));
 
         //prevents torpedo and rocket pilots
-        
-        //prevents torpedo and rocket pilots
-        if (!(craft instanceof SinkingCraft && craft.getType().getBoolProperty(CraftType.ONLY_MOVE_PLAYERS)) && craft.getType().getBoolProperty(CraftType.MOVE_ENTITIES)) {
-            Location midpoint = oldHitBox.getMidPoint().toBukkit(craft.getWorld());
-            List<Entity> nearEntites = new ArrayList<>();
-            nearEntites.addAll(craft.getWorld().getNearbyEntities(midpoint,
-                    oldHitBox.getXLength() / 2.0 + 3.0,
-                    oldHitBox.getYLength() / 1.5 + 3.0,
-                    oldHitBox.getZLength() / 2.0 + 3.0));
-            nearEntites.addAll(((BaseCraft)craft).getPassengers());
-            for (Craft c2 : CraftManager.getInstance().getCraftsInWorld(craft.getWorld())) {
-                if (c2.equals(craft))
-                    continue;
-                nearEntites.removeAll(((BaseCraft)c2).getPassengers());
-            }
-            for (Entity entity : nearEntites) {
-                if (entity == null)
-                    continue;
-                if (entity.getType() != EntityType.PLAYER && entity.getType() != EntityType.FIREWORK && entity.getType() != EntityType.PRIMED_TNT && entity.getType() != EntityType.ARROW) {
-                    if ((((BaseCraft)craft).getPassengers().contains(entity) == false)) {
-                        if (entity.getType().toString().contains("Display")) {
-                            if (!(craft.getHitBox().contains(MathUtils.bukkit2MovecraftLoc(entity.getLocation())))) {
-                                ((BaseCraft)craft).removePassenger(entity);
-                                continue;
-                            }
-                        }
-                        ((BaseCraft)craft).addPassenger(entity);
-                    }
-                }
+        if (!(craft instanceof SinkingCraft && craft.getType().getBoolProperty(CraftType.ONLY_MOVE_PLAYERS))
+                && craft.getType().getBoolProperty(CraftType.MOVE_ENTITIES)) {
+            Location midpoint = new Location(
+                    craft.getWorld(),
+                    (oldHitBox.getMaxX() + oldHitBox.getMinX()) / 2.0,
+                    (oldHitBox.getMaxY() + oldHitBox.getMinY()) / 2.0,
+                    (oldHitBox.getMaxZ() + oldHitBox.getMinZ()) / 2.0);
+            for (Entity entity : craft.getWorld().getNearbyEntities(midpoint,
+                    oldHitBox.getXLength() / 2.0 + 1,
+                    oldHitBox.getYLength() / 2.0 + 2,
+                    oldHitBox.getZLength() / 2.0 + 1
+            )) {
 
-                InventoryView inventoryView = null;
-                Location iLoc = null;
-                MovecraftLocation invMoveLoc = null;
                 if (entity instanceof HumanEntity) {
-                    inventoryView = ((HumanEntity) entity).getOpenInventory();
+                    InventoryView inventoryView = ((HumanEntity) entity).getOpenInventory();
                     if (inventoryView.getType() != InventoryType.CRAFTING) {
-                        iLoc = Movecraft.getInstance().getWorldHandler().getAccessLocation(inventoryView);
-                        if (iLoc != null) {
-                            invMoveLoc = new MovecraftLocation(iLoc.getBlockX(), iLoc.getBlockY(), iLoc.getBlockZ());
-                            if (inventoryView.getTopInventory().getHolder() == null) {
-                                invMoveLoc = null;
+                        Location l = Movecraft.getInstance().getWorldHandler().getAccessLocation(inventoryView);
+                        if (l != null) {
+                            MovecraftLocation location = new MovecraftLocation(l.getBlockX(), l.getBlockY(), l.getBlockZ());
+                            if (oldHitBox.contains(location)) {
+                                location = location.translate(dx, dy, dz);
+                                updates.add(new AccessLocationUpdateCommand(inventoryView, location.toBukkit(world)));
                             }
                         }
                     }
-                }
-                if ((((BaseCraft)craft).getPassengers().contains(entity) == false)) {
-                  continue;
-                }
-                if (entity.getVehicle() == null && entity.getPassenger() == null) {
-                    if (!MathUtils.locationNearHitBox(craft.getHitBox(),entity.getLocation(),3.5)) {
-                      if (!MathUtils.locationNearHitBox(craft.getHitBox().boundingHitBox(),entity.getLocation(),3.5)) {
-                        //Movecraft.getInstance().getLogger().warning("Skipping Entity: "+entity+", Not Aboard");
-                        continue;
-                      }
-                    }
-                    if (craft instanceof BaseCraft) {
-                        if (!((BaseCraft)craft).hasPassenger(entity)) continue;
-                    }
-                    if (world != craft.getWorld()) {
-                      if (entity.getPassenger() != null) {
-                        entity.eject();
-                      } else if (entity.getVehicle() != null) {
-                        entity.getVehicle().eject();
-                      }
-                    }
-                    if (entity.getVehicle() != null)
-                      entity = entity.getVehicle();
-                    if (craft instanceof BaseCraft) {
-                        if (!((BaseCraft)craft).hasPassenger(entity)) continue;
-                    }
-                    EntityUpdateCommand eUp = new EntityUpdateCommand(entity, dx, dy, dz, 0, 0, world, sound, volume);
-                    updates.add(eUp);
-                    if (entity instanceof HumanEntity) {
-                        if (iLoc != null && invMoveLoc != null) {
-                            if (oldHitBox.contains(invMoveLoc)) {
-                                MovecraftLocation imloc = invMoveLoc.translate(dx,dy,dz);
-                                updates.add(new AccessLocationUpdateCommand(inventoryView, imloc.toBukkit(world)));
-                            }
-                        }
-                    }
-                } else {
-                    if (!MathUtils.locationNearHitBox(craft.getHitBox(),entity.getLocation(),3.5)) {
-                      if (!MathUtils.locationNearHitBox(craft.getHitBox().boundingHitBox(),entity.getLocation(),3.5)) {
-                        //Movecraft.getInstance().getLogger().warning("Skipping Entity: "+entity+", Not Aboard");
-                        continue;
-                      }
-                    }
-                    if (world != craft.getWorld()) {
-                      if (entity.getPassenger() != null) {
-                        entity.eject();
-                      } else if (entity.getVehicle() != null) {
-                        entity.getVehicle().eject();
-                      }
-                    }
-                    if (entity.getVehicle() != null)
-                      entity = entity.getVehicle();
-                    if (craft instanceof BaseCraft) {
-                        if (!((BaseCraft)craft).hasPassenger(entity)) continue;
-                    }
-                    EntityUpdateCommand eUp = new EntityUpdateCommand(entity, dx, dy, dz, 0, 0, world, sound, volume);
-                    updates.add(eUp);
                 }
 
-                if (entity instanceof HumanEntity) {
-                    if (iLoc != null && invMoveLoc != null) {
-                        if (oldHitBox.contains(invMoveLoc)) {
-                            MovecraftLocation imloc = invMoveLoc.translate(dx,dy,dz);
-                            updates.add(new AccessLocationUpdateCommand(inventoryView, imloc.toBukkit(world)));
-                        }
-                    }
+                if ((entity.getType() == EntityType.PLAYER && !(craft instanceof SinkingCraft))) {
+                    CraftTeleportEntityEvent e = new CraftTeleportEntityEvent(craft, entity);
+                    Bukkit.getServer().getPluginManager().callEvent(e);
+                    if (e.isCancelled())
+                        continue;
+
+                    EntityUpdateCommand eUp = new EntityUpdateCommand(entity, dx, dy, dz, 0, 0,
+                            world, sound, volume);
+                    updates.add(eUp);
+                } else if (!craft.getType().getBoolProperty(CraftType.ONLY_MOVE_PLAYERS)
+                        || entity.getType() == EntityType.PRIMED_TNT) {
+                    CraftTeleportEntityEvent e = new CraftTeleportEntityEvent(craft, entity);
+                    Bukkit.getServer().getPluginManager().callEvent(e);
+                    if (e.isCancelled())
+                        continue;
+
+                    EntityUpdateCommand eUp = new EntityUpdateCommand(entity, dx, dy, dz, 0, 0, world);
+                    updates.add(eUp);
                 }
             }
         } else {
@@ -963,11 +875,6 @@ public class TranslationTask extends AsyncTask {
 
     public MutableHitBox getNewFluidList() {
         return newFluidList;
-    }
-
-    @Override
-    public World getWorld() {
-        return world;
     }
 
     public Collection<UpdateCommand> getUpdates() {

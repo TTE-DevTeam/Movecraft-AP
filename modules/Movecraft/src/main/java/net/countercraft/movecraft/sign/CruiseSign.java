@@ -13,7 +13,7 @@ import org.bukkit.Tag;
 import org.bukkit.World;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.Sign;
-import org.bukkit.block.data.type.WallSign;
+import org.bukkit.block.data.Directional;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -46,7 +46,6 @@ public final class CruiseSign implements Listener {
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onSignClick(@NotNull PlayerInteractEvent event) {
-        Player player = event.getPlayer();
         if (event.getAction() != Action.RIGHT_CLICK_BLOCK)
             return;
 
@@ -57,17 +56,17 @@ public final class CruiseSign implements Listener {
         Sign sign = (Sign) state;
         String line = ChatColor.stripColor(sign.getLine(0));
         if (line.equalsIgnoreCase("Cruise: OFF")) {
+            event.setCancelled(true);
             Craft c = CraftManager.getInstance().getCraftByPlayer(event.getPlayer());
             if (c == null || !c.getType().getBoolProperty(CraftType.CAN_CRUISE))
                 return;
-            if (!(sign.getBlockData() instanceof WallSign))
+            if (!(sign.getBlockData() instanceof Directional))
                 return;
 
             sign.setLine(0, "Cruise: ON");
             sign.update(true);
-            player.sendMessage("Cruise: ON");
 
-            c.setCruiseDirection(CruiseDirection.fromBlockFace(((WallSign) sign.getBlockData()).getFacing()));
+            c.setCruiseDirection(CruiseDirection.fromBlockFace(((Directional) sign.getBlockData()).getFacing()));
             c.setLastCruiseUpdate(System.currentTimeMillis());
             c.setCruising(true);
             c.resetSigns(sign);
@@ -76,10 +75,11 @@ public final class CruiseSign implements Listener {
             }
         }
         else if (line.equalsIgnoreCase("Cruise: ON")) {
+            event.setCancelled(true);
             Craft c = CraftManager.getInstance().getCraftByPlayer(event.getPlayer());
             if (c == null || !c.getType().getBoolProperty(CraftType.CAN_CRUISE))
                 return;
-            player.sendMessage("Cruise: OFF");
+
             sign.setLine(0, "Cruise: OFF");
             sign.update(true);
             c.setCruising(false);

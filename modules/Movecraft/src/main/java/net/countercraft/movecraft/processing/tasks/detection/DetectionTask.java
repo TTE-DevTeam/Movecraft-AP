@@ -5,7 +5,6 @@ import com.google.common.collect.Lists;
 import net.countercraft.movecraft.Movecraft;
 import net.countercraft.movecraft.MovecraftLocation;
 import net.countercraft.movecraft.craft.Craft;
-import net.countercraft.movecraft.craft.BaseCraft;
 import net.countercraft.movecraft.craft.CraftManager;
 import net.countercraft.movecraft.craft.SubCraft;
 import net.countercraft.movecraft.craft.type.CraftType;
@@ -19,6 +18,7 @@ import net.countercraft.movecraft.processing.functions.CraftSupplier;
 import net.countercraft.movecraft.processing.functions.DetectionPredicate;
 import net.countercraft.movecraft.processing.functions.Result;
 import net.countercraft.movecraft.processing.tasks.detection.validators.AllowedBlockValidator;
+import net.countercraft.movecraft.processing.tasks.detection.validators.DetectionBlockValidator;
 import net.countercraft.movecraft.processing.tasks.detection.validators.FlyBlockValidator;
 import net.countercraft.movecraft.processing.tasks.detection.validators.ForbiddenBlockValidator;
 import net.countercraft.movecraft.processing.tasks.detection.validators.ForbiddenSignStringValidator;
@@ -31,7 +31,6 @@ import net.countercraft.movecraft.util.CollectionUtils;
 import net.countercraft.movecraft.util.Tags;
 import net.countercraft.movecraft.util.hitboxes.BitmapHitBox;
 import net.countercraft.movecraft.util.hitboxes.HitBox;
-import net.countercraft.movecraft.util.hitboxes.MutableHitBox;
 import net.countercraft.movecraft.util.hitboxes.SetHitBox;
 import net.countercraft.movecraft.util.hitboxes.SolidHitBox;
 import net.kyori.adventure.audience.Audience;
@@ -91,7 +90,8 @@ public class DetectionTask implements Supplier<Effect> {
     );
     private static final List<DetectionPredicate<Map<Material, Deque<MovecraftLocation>>>> COMPLETION_VALIDATORS = List.of(
             new SizeValidator(),
-            new FlyBlockValidator()
+            new FlyBlockValidator(),
+            new DetectionBlockValidator()
     );
     private static final List<DetectionPredicate<Map<Material, Deque<MovecraftLocation>>>> VISITED_VALIDATORS = List.of(
             new WaterContactValidator()
@@ -186,15 +186,11 @@ public class DetectionTask implements Supplier<Effect> {
         confirmed.addAll(visited);
         entireHitbox.addAll(invertedHitBox.difference(confirmed));
 
+        var waterData = Bukkit.createBlockData(Material.WATER);
         return () -> {
             for (MovecraftLocation location : entireHitbox) {
                 if (location.getY() <= waterLine) {
-                    craft.getPhaseBlocks().put(location.toBukkit(badWorld), Movecraft.getInstance().getWaterBlockData());
-                }
-            }
-            for (MovecraftLocation location : craft.getHitBox().boundingHitBox()) {
-                if (location.getY() <= waterLine) {
-                    craft.getPhaseBlocks().put(location.toBukkit(badWorld), Movecraft.getInstance().getWaterBlockData());
+                    craft.getPhaseBlocks().put(location.toBukkit(badWorld), waterData);
                 }
             }
         };
@@ -277,7 +273,7 @@ public class DetectionTask implements Supplier<Effect> {
             craft.getAudience().sendMessage(Component.text(String.format(
                     "%s Size: %s",
                     I18nSupport.getInternationalisedString("Detection - Successfully piloted craft"),
-                    craft.getOrigBlockCount()
+                    craft.getHitBox().size()
             )));
             Movecraft.getInstance().getLogger().info(String.format(
                     I18nSupport.getInternationalisedString("Detection - Success - Log Output"),
@@ -299,7 +295,7 @@ public class DetectionTask implements Supplier<Effect> {
                 postDetection.apply(craft)
         ).andThen(
                 // Add craft to CraftManager
-                () -> CraftManager.getInstance().addCraft(craft)
+                () -> CraftManager.getInstance().add(craft)
         );
     }
 
@@ -358,9 +354,9 @@ public class DetectionTask implements Supplier<Effect> {
                     legal.add(probe);
                     if(Tags.FLUID.contains(movecraftWorld.getMaterial(probe)))
                         fluid.add(probe);
+
                     size.increment();
                     materials.computeIfAbsent(movecraftWorld.getMaterial(probe), Functions.forSupplier(ConcurrentLinkedDeque::new)).add(probe);
-
                     for(MovecraftLocation shift : SHIFTS) {
                         var shifted = probe.add(shift);
                         if(visited.add(shifted))

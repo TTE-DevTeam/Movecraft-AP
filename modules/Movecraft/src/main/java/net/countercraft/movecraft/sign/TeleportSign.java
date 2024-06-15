@@ -19,7 +19,7 @@ import org.jetbrains.annotations.NotNull;
 public final class TeleportSign implements Listener {
     private static final String HEADER = "Teleport:";
 
-    @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = false)
+    @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onSignClick(@NotNull PlayerInteractEvent event) {
         if (event.getAction() != Action.RIGHT_CLICK_BLOCK) {
             return;
@@ -32,6 +32,7 @@ public final class TeleportSign implements Listener {
         if (!ChatColor.stripColor(sign.getLine(0)).equalsIgnoreCase(HEADER)) {
             return;
         }
+        event.setCancelled(true);
         if (CraftManager.getInstance().getCraftByPlayer(event.getPlayer()) == null) {
             return;
         }

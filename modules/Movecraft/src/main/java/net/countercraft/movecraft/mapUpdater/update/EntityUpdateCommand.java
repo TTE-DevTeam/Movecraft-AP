@@ -17,22 +17,13 @@
 
 package net.countercraft.movecraft.mapUpdater.update;
 
+import net.countercraft.movecraft.Movecraft;
+import net.countercraft.movecraft.util.ReflectUtils;
 import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.World;
-import net.countercraft.movecraft.Movecraft;
-import net.countercraft.movecraft.MovecraftRotation;
-import net.countercraft.movecraft.craft.Craft;
-import net.countercraft.movecraft.craft.PlayerCraft;
-import net.countercraft.movecraft.craft.CraftManager;
-import org.bukkit.event.inventory.InventoryType;
-import org.bukkit.block.BlockFace;
-import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.Hanging;
 import org.bukkit.entity.Player;
-import org.bukkit.Bukkit;
 
 import java.util.Objects;
 
@@ -49,7 +40,6 @@ public class EntityUpdateCommand extends UpdateCommand {
     private final World world;
     private final Sound sound;
     private final float volume;
-    private final MovecraftRotation rotation;
 
     public EntityUpdateCommand(Entity entity, double x, double y, double z, float yaw, float pitch) {
         this.entity = entity;
@@ -61,7 +51,6 @@ public class EntityUpdateCommand extends UpdateCommand {
         this.world = entity.getWorld();
         this.sound = null;
         this.volume = 0.0f;
-        this.rotation = MovecraftRotation.NONE;
     }
 
     public EntityUpdateCommand(Entity entity, double x, double y, double z, float yaw, float pitch, World world) {
@@ -74,7 +63,6 @@ public class EntityUpdateCommand extends UpdateCommand {
         this.world = world;
         this.sound = null;
         this.volume = 0.0f;
-        this.rotation = MovecraftRotation.NONE;
     }
 
     public EntityUpdateCommand(Entity entity, double x, double y, double z, float yaw, float pitch, World world, Sound sound, float volume) {
@@ -87,33 +75,6 @@ public class EntityUpdateCommand extends UpdateCommand {
         this.world = world;
         this.sound = sound;
         this.volume = volume;
-        this.rotation = MovecraftRotation.NONE;
-    }
-
-    public EntityUpdateCommand(Entity entity, double x, double y, double z, float yaw, float pitch, World world, MovecraftRotation rotation) {
-        this.entity = entity;
-        this.x = x;
-        this.y = y;
-        this.z = z;
-        this.yaw = yaw;
-        this.pitch = pitch;
-        this.world = world;
-        this.sound = null;
-        this.volume = 0.0f;
-        this.rotation = rotation;
-    }
-
-    public EntityUpdateCommand(Entity entity, double x, double y, double z, float yaw, float pitch, World world, Sound sound, float volume, MovecraftRotation rotation) {
-        this.entity = entity;
-        this.x = x;
-        this.y = y;
-        this.z = z;
-        this.yaw = yaw;
-        this.pitch = pitch;
-        this.world = world;
-        this.sound = sound;
-        this.volume = volume;
-        this.rotation = rotation;
     }
 
     public Entity getEntity() {
@@ -122,32 +83,16 @@ public class EntityUpdateCommand extends UpdateCommand {
 
     @Override
     public void doUpdate() {
-        final Location entityLoc = entity.getLocation();
-        final Location destLoc = new Location(world, entityLoc.getX() + x, entityLoc.getY() + y, entityLoc.getZ() + z,yaw + entityLoc.getYaw(),pitch + entityLoc.getPitch());
-        if (entity instanceof Player) {
-            if (sound != null) {
-                ((Player) entity).playSound(destLoc, sound, volume, 1.0f);
-            }
+        Location playerLoc = entity.getLocation();
+        // Use bukkit teleporting API for changing worlds because it won't be smooth anyway
+        if (!(entity instanceof Player) || !playerLoc.getWorld().equals(world)) { 
+            entity.teleport(new Location(world, x + playerLoc.getX(),y + playerLoc.getY(),z + playerLoc.getZ(),yaw + playerLoc.getYaw(),pitch + playerLoc.getPitch()));
+            return;
         }
-        if (yaw == 0.0f) {
-            destLoc.setYaw(entityLoc.getYaw());
-        }
-        if (pitch == 0.0f) {
-            destLoc.setPitch(entityLoc.getPitch());
-        }
-        if (entity.getVehicle() != null) {
-            Entity vehicle = entity.getVehicle();
-            (vehicle).teleport(destLoc,io.papermc.paper.entity.TeleportFlag.EntityState.values());
-        } else {
-            if (entity instanceof Player) {
-                if (((Player)entity).getOpenInventory().getType() != InventoryType.CRAFTING && ((Player)entity).getOpenInventory().getType() != null) {
-                    Movecraft.getInstance().getSmoothTeleport().teleport(((Player) entity), destLoc, yaw, pitch);
-                } else {
-                    (entity).teleport(destLoc,io.papermc.paper.entity.TeleportFlag.Relative.values());
-                }
-            } else {
-                (entity).teleport(destLoc,io.papermc.paper.entity.TeleportFlag.EntityState.values());
-            }
+        Location location = new Location(world, playerLoc.getX() + x, playerLoc.getY() + y, playerLoc.getZ() + z);
+        Movecraft.getInstance().getSmoothTeleport().teleport((Player) entity, location, yaw, pitch);
+        if (sound != null) {
+            ((Player) entity).playSound(location, sound, volume, 1.0f);
         }
     }
 

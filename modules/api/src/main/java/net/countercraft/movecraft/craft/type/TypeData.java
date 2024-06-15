@@ -458,7 +458,7 @@ public final class TypeData {
                 return new Pair<>(false, Double.valueOf(str));
         }
         else if (input instanceof Integer) {
-            return new Pair<>(false, (double) input);
+            return new Pair<>(false, (Integer) input);
         }
         else
             return new Pair<>(false, (double) input);
@@ -515,7 +515,33 @@ public final class TypeData {
             var min = parseLimit(limits.get(0));
             var max = parseLimit(limits.get(1));
 
-            out.add(new RequiredBlockEntry(materials, min, max));
+            String name;
+            String s = null;
+            Object entryKey = entry.getKey();
+            if (entryKey instanceof ArrayList) {
+                //name for array list
+                ArrayList<?> list = (ArrayList<?>) entryKey;
+                if (list.get(0) instanceof String) {
+                    s = (String)list.get(0);
+                }
+            } else if (entryKey instanceof String) {
+                s = (String)entryKey;
+            }
+            if (s == null) {
+                out.add(new RequiredBlockEntry(materials, min, max, null));
+                continue;
+            }
+            if (s.charAt(0) == '#' && s.length() > 1) {
+                int n = 1;
+                if (s.contains(":")) {
+                    s = s.split(":")[1];
+                    n--;
+                }
+                name = s.substring(n);
+            } else {
+                name = s;
+            }
+            out.add(new RequiredBlockEntry(materials, min, max, name));
         }
         return out;
     }

@@ -24,12 +24,13 @@ import net.countercraft.movecraft.util.hitboxes.HitBox;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.WorldBorder;
-import java.util.Set;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.HashSet;
 import java.util.OptionalInt;
+import java.util.Set;
 
 public class MathUtils {
 
@@ -81,8 +82,6 @@ public class MathUtils {
      */
     @Contract(pure=true)
     public static boolean locationNearHitBox(@NotNull final HitBox hitBox, @NotNull final Location location, double distance) {
-        if (hitBox == null)
-          return false;
         return !hitBox.isEmpty() &&
                 location.getX() >= hitBox.getMinX() - distance &&
                 location.getZ() >= hitBox.getMinZ() - distance &&
@@ -101,30 +100,9 @@ public class MathUtils {
     @Contract(pure=true)
     public static boolean locIsNearCraftFast(@NotNull final Craft craft, @NotNull final MovecraftLocation location) {
         // optimized to be as fast as possible, it checks the easy ones first, then the more computationally intensive later
-        if (craft == null) {
-          return false;
-        }
         return locationNearHitBox(craft.getHitBox(), location.toBukkit(craft.getWorld()), 3);
     }
 
-    @Contract(pure=true)
-    public static Craft fastNearestCraftToLoc(Set<Craft> craftsList, Location loc) {
-        Craft ret = null;
-        long closestDistSquared = Long.MAX_VALUE;
-        for (Craft i : craftsList) {
-            if (i.getHitBox().isEmpty())
-                continue;
-            int midX = (i.getHitBox().getMaxX() + i.getHitBox().getMinX()) >> 1;
-//				int midY=(i.getMaxY()+i.getMinY())>>1; don't check Y because it is slow
-            int midZ = (i.getHitBox().getMaxZ() + i.getHitBox().getMinZ()) >> 1;
-            long distSquared = (long) (Math.pow(midX -  loc.getX(), 2) + Math.pow(midZ - (int) loc.getZ(), 2));
-            if (distSquared < closestDistSquared) {
-                closestDistSquared = distSquared;
-                ret = i;
-            }
-        }
-        return ret;
-    }
     /**
      * Creates a <code>MovecraftLocation</code> representation of a bukkit <code>Location</code> object aligned to the block grid
      * @param bukkitLocation the location to convert

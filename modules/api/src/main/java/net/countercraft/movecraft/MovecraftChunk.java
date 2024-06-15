@@ -33,12 +33,6 @@ public class MovecraftChunk implements Comparable<MovecraftChunk>{
         this.z = z;
         this.world = world;
     }
-
-    public MovecraftChunk(Chunk chnk) {
-        this.x = chnk.getX();
-        this.z = chnk.getZ();
-        this.world = chnk.getWorld();
-    }
     
     public int getX() {
         return x;
@@ -60,7 +54,7 @@ public class MovecraftChunk implements Comparable<MovecraftChunk>{
         return world.getChunkAt(x, z);
     }
 
-    public static Set<MovecraftChunk> addSurroundingChunks(Set<MovecraftChunk> chunks, int radius) {
+    public static void addSurroundingChunks(Set<MovecraftChunk> chunks, int radius) {
         
         if (radius > 0) {
             List<MovecraftChunk> tmp = new ArrayList<>(chunks);
@@ -73,7 +67,7 @@ public class MovecraftChunk implements Comparable<MovecraftChunk>{
                 }
             }
         }
-        return chunks;
+        
     }
 
     @Override

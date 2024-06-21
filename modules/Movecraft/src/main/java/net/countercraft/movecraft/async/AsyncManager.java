@@ -50,6 +50,7 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -217,10 +218,14 @@ public class AsyncManager extends BukkitRunnable {
             boolean bankLeft = false;
             boolean bankRight = false;
             boolean dive = false;
+            boolean rise = false;
             if (craft instanceof PlayerCraft && ((PlayerCraft) craft).getPilotLocked()) {
                 Player pilot = ((PlayerCraft) craft).getPilot();
-                if (pilot.isSneaking())
-                    dive = true;
+                if (pilot.isSneaking()) {
+                    // TODO: If the player has the pilot tool in the off-hand, we shall ascend and not dive
+                    dive = pilot.getInventory().getItem(EquipmentSlot.OFF_HAND).getType() != Settings.PilotTool;
+                    rise = !dive && pilot.getInventory().getItem(EquipmentSlot.OFF_HAND).getType() == Settings.PilotTool;
+                }
                 if (pilot.getInventory().getHeldItemSlot() == 3)
                     bankLeft = true;
                 if (pilot.getInventory().getHeldItemSlot() == 5)
@@ -241,16 +246,21 @@ public class AsyncManager extends BukkitRunnable {
             if (craft.getCruiseDirection() != CruiseDirection.UP
                     && craft.getCruiseDirection() != CruiseDirection.DOWN) {
                 if (bankLeft || bankRight) {
-                    if (!dive) {
-                        tickCoolDown *= (Math.sqrt(Math.pow(1 + cruiseSkipBlocks, 2)
-                                + Math.pow(cruiseSkipBlocks >> 1, 2)) / (1 + cruiseSkipBlocks));
-                    }
-                    else {
+                    // TODO: Why is this the same each time?
+                    if (dive) {
                         tickCoolDown *= (Math.sqrt(Math.pow(1 + cruiseSkipBlocks, 2)
                                 + Math.pow(cruiseSkipBlocks >> 1, 2) + 1) / (1 + cruiseSkipBlocks));
                     }
+                    if (rise) {
+                        tickCoolDown *= (Math.sqrt(Math.pow(1 + cruiseSkipBlocks, 2)
+                                + Math.pow(cruiseSkipBlocks >> 1, 2) + 1) / (1 + cruiseSkipBlocks));
+                    }
+                    else {
+                        tickCoolDown *= (Math.sqrt(Math.pow(1 + cruiseSkipBlocks, 2)
+                                + Math.pow(cruiseSkipBlocks >> 1, 2)) / (1 + cruiseSkipBlocks));
+                    }
                 }
-                else if (dive) {
+                else if (dive || rise) {
                     tickCoolDown *= (Math.sqrt(Math.pow(1 + cruiseSkipBlocks, 2) + 1) / (1 + cruiseSkipBlocks));
                 }
             }
@@ -273,6 +283,11 @@ public class AsyncManager extends BukkitRunnable {
                 dy = -1 - vertCruiseSkipBlocks;
                 if (craft.getHitBox().getMinY() <= w.getSeaLevel())
                     dy = -1;
+            }
+            else if (rise) {
+                dy = ((cruiseSkipBlocks + 1) >> 1);
+                if (craft.getHitBox().getMinY() <= w.getSeaLevel())
+                    dy = 1;
             }
             else if (dive) {
                 dy = -((cruiseSkipBlocks + 1) >> 1);
